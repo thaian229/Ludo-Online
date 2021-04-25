@@ -132,8 +132,6 @@ class Game:
 
         while self.playing_offline:
             # self.check_events()
-            if self.START_KEY:
-                self.playing_offline = False
 
             self.chance = 1
             # Drawing
@@ -167,6 +165,9 @@ class Game:
 
             # Main Event Handler
             self.offline_events_handling()
+            if self.BACK_KEY or self.START_KEY:
+                self.playing_offline = False
+                self.curr_menu = self.main_menu
 
             # Update Frame
             self.window.blit(self.display, (0, 0))
