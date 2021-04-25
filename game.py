@@ -1,6 +1,5 @@
 from menu import *
 import random
-import time
 
 
 class Piece:
@@ -55,6 +54,7 @@ class Game:
         self.font_name = '8-BIT WONDER.TTF'
         self.main_menu = MainMenu(self)
         self.credits = CreditsMenu(self)
+        self.online_menu = OnlineModeMenu(self)
         self.curr_menu = self.main_menu
 
         # all main game loop attributes
@@ -115,18 +115,19 @@ class Game:
                                                         self.DISPLAY_H - 3 * self.big_rect_size / 4])
 
     def game_loop_offline(self):
-        self.turn = 0
-        self.starting_one = []
-        for i in range(4):
-            self.starting_one.append([0 for _ in range(self.n)])
-        self.game_fps = 30
-        self.clock = pygame.time.Clock()
-        self.game_percent = [0, 0, 0, 0]
-        self.dice = random.randrange(1, 7)
-        self.winner = 0
-        self.game_over = False
-        self.display.fill(self.BLACK)
-        self.draw_board()
+        if self.playing_offline:
+            self.turn = 0
+            self.starting_one = []
+            for i in range(4):
+                self.starting_one.append([0 for _ in range(self.n)])
+            self.game_fps = 30
+            self.clock = pygame.time.Clock()
+            self.game_percent = [0, 0, 0, 0]
+            self.dice = random.randrange(1, 7)
+            self.winner = 0
+            self.game_over = False
+            self.display.fill(self.BLACK)
+            self.draw_board()
 
         while self.playing_offline:
             # self.check_events()
@@ -173,6 +174,61 @@ class Game:
             self.reset_keys()
 
     def game_loop_online(self):
+        if self.playing_online:
+            room_players = 0
+            room_ready = 0
+            room_id = 0
+
+            # based on online_menu.selection, do corresponding preparation before main loop
+            if self.online_menu.selection == 'Create':
+                # send message to create new room
+                room_players = 1
+            elif self.online_menu.selection == 'Quick':
+                # send message to join any room
+                pass
+            elif self.online_menu.selection == 'Id':
+                # display form for user to enter id
+                # send message to join room with inputted room id
+                pass
+
+            game_preparing = True
+            is_ready = False
+            # while not game started, looping to render Room Menu and handler ready and start message
+            while game_preparing:
+                if 1 < room_players == room_ready > 1:
+                    self.players = room_players
+                    game_preparing = False
+
+                self.check_events()
+                if self.START_KEY:
+                    if not is_ready:
+                        # send ready message
+                        is_ready = True
+
+                # render Room Menu
+                self.display.fill(self.BLACK)
+                self.draw_text('ROOM ID ' + str(room_id), 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 - 100)
+                self.draw_text('Players ' + str(room_players) + ' of 4', 30, self.DISPLAY_W / 2,
+                               self.DISPLAY_H / 2 + 0)
+                self.draw_text('Ready ' + str(room_ready) + ' of ' + str(room_players), 30, self.DISPLAY_W / 2,
+                               self.DISPLAY_H / 2 + 50)
+                if is_ready:
+                    self.draw_text('YOU ARE READY', 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 + 100)
+                else:
+                    self.draw_text('HIT ENTER TO READY', 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 + 100)
+                self.window.blit(self.display, (0, 0))
+                pygame.display.update()
+
+                if self.BACK_KEY:
+                    self.curr_menu = self.online_menu
+                    self.playing_online = False
+                    self.reset_keys()
+                    break
+                self.reset_keys()
+
+            # receive init information from server before really enter main loop
+
+        # main loop
         while self.playing_online:
             self.check_events()
             if self.START_KEY:
@@ -378,7 +434,8 @@ class Game:
             pygame.time.delay(10)
             self.draw_board()
             self.display.blit(pygame.image.load("assets/dice_mid.jpeg"), (
-                (self.DISPLAY_W - 200) / 2 - i * random.randrange(- 50, 50), self.DISPLAY_H / 2 - random.randrange(- 50, 50)))
+                (self.DISPLAY_W - 200) / 2 - i * random.randrange(- 50, 50),
+                self.DISPLAY_H / 2 - random.randrange(- 50, 50)))
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
             pygame.time.delay(20)

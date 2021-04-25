@@ -68,9 +68,72 @@ class MainMenu(Menu):
             if self.state == 'Offline':
                 self.game.playing_offline = True
             elif self.state == 'Online':
-                self.game.playing_online = True
+                self.game.curr_menu = self.game.online_menu
             elif self.state == 'Credits':
                 self.game.curr_menu = self.game.credits
+            self.run_display = False
+
+
+class OnlineModeMenu(Menu):
+    def __init__(self, game):
+        Menu.__init__(self, game)
+        self.state = 'Create'
+        self.create_x, self.create_y = self.mid_w, self.mid_h + 0
+        self.quick_join_x, self.quick_join_y = self.mid_w, self.mid_h + 50
+        self.join_id_x, self.join_id_y = self.mid_w, self.mid_h + 100
+        self.cursor_rect.midtop = (self.create_x + self.offset, self.create_y)
+        self.selection = ''
+
+    def display_menu(self):
+        self.run_display = True
+        while self.run_display:
+            self.game.check_events()
+            self.check_input()
+            self.game.display.fill(self.game.BLACK)
+            self.game.draw_text('LUDO ONLINE', 30, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 100)
+            self.game.draw_text("Create A Room", 30, self.create_x, self.create_y)
+            self.game.draw_text("Quick Join", 30, self.quick_join_x, self.quick_join_y)
+            self.game.draw_text("Join By Id", 30, self.join_id_x, self.join_id_y)
+            self.draw_cursor()
+            self.blit_screen()
+
+    def move_cursor(self):
+        if self.game.DOWN_KEY:
+            if self.state == 'Create':
+                self.cursor_rect.midtop = (self.quick_join_x + self.offset, self.quick_join_y)
+                self.state = 'Quick'
+            elif self.state == 'Quick':
+                self.cursor_rect.midtop = (self.join_id_x + self.offset, self.join_id_y)
+                self.state = 'Join Id'
+            elif self.state == 'Join Id':
+                self.cursor_rect.midtop = (self.create_x + self.offset, self.create_y)
+                self.state = 'Create'
+        elif self.game.UP_KEY:
+            if self.state == 'Create':
+                self.cursor_rect.midtop = (self.join_id_x + self.offset, self.join_id_y)
+                self.state = 'Join Id'
+            elif self.state == 'Quick':
+                self.cursor_rect.midtop = (self.create_x + self.offset, self.create_y)
+                self.state = 'Create'
+            elif self.state == 'Join Id':
+                self.cursor_rect.midtop = (self.quick_join_x + self.offset, self.quick_join_y)
+                self.state = 'Quick'
+
+    def check_input(self):
+        self.move_cursor()
+        if self.game.START_KEY:
+            if self.state == 'Create':
+                self.selection = 'Create'
+                self.game.playing_online = True
+            elif self.state == 'Quick':
+                self.selection = 'Quick'
+                self.game.playing_online = True
+            elif self.state == 'Join Id':
+                self.selection = 'Id'
+                self.game.playing_online = True
+            self.run_display = False
+        if self.game.BACK_KEY:
+            self.game.curr_menu = self.game.main_menu
             self.run_display = False
 
 
@@ -86,6 +149,7 @@ class CreditsMenu(Menu):
                 self.game.curr_menu = self.game.main_menu
                 self.run_display = False
             self.game.display.fill(self.game.BLACK)
-            self.game.draw_text('Credits', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 20)
-            self.game.draw_text('Made by me', 15, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 10)
+            self.game.draw_text('Credits', 30, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 100)
+            self.game.draw_text('Nguyen Thai An', 30, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 0)
+            self.game.draw_text('Vu Minh Hoang', 30, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 50)
             self.blit_screen()
