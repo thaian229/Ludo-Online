@@ -46,6 +46,7 @@ class Piece:
 class Game:
     def __init__(self):
         pygame.init()
+        pygame.display.set_caption('Ludo Game')
         self.running, self.playing_offline, self.playing_online = True, False, False
         self.UP_KEY, self.DOWN_KEY, self.START_KEY, self.BACK_KEY = False, False, False, False
         self.DISPLAY_W, self.DISPLAY_H = 800, 600
