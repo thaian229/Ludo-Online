@@ -1,0 +1,6 @@
+FIRST, COMPILE client.c into .so (shared object file):
+-->
+cc -fPIC -shared -o client.so client.c
+
+THEN,
+run server, run python file
