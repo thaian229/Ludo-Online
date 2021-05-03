@@ -171,3 +171,29 @@ bool updateReadyStatus(Room *room, int clientFd)
     }
     return false;
 }
+
+int calculateNumberOfClientInRoom(Room *room)
+{
+    int count = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        if (room->clientFd[i] != 0)
+        {
+            count++;
+        }
+    }
+    return count;
+}
+
+int calculateNumberOfReadiedClient(Room *room)
+{
+    int count = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        if (room->ready[i] == true)
+        {
+            count++;
+        }
+    }
+    return count;
+}

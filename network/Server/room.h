@@ -7,6 +7,7 @@ typedef struct Room
     int id;
     int clientFd[4];
     bool ready[4];
+    bool isPlaying;
     struct Room *next;
 } Room;
 
@@ -25,5 +26,10 @@ bool removeClientFromRoom(Room *room, int clientFd);
 bool addClientToRoom(Room *room, int clientFd);
 
 bool updateReadyStatus(Room *room, int clientFd);
+
+int calculateNumberOfReadiedClient(Room *room);
+
+int calculateNumberOfClientInRoom(Room *room);
+
 
 #endif

@@ -30,9 +30,9 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId);
 
 void ready(int socketFd, Room *room);
 
-void updateRoomStatus(int socketFd, Room *room, RoomStatus *roomStatus);
+void updateRoomStatus(int socketFd, Room *room);
 
-void initGame(int socketFd, Room *room, GameInitInfo *gameInitInfo);
+void initGame(int socketFd, Room *room);
 
 void move(int socketFd, Room *room, Move *move);
 
@@ -87,19 +87,6 @@ int main(int argc, char const *argv[])
     }
     printf("Server is running... waiting for connection.\n");
 
-    unsigned char buffer[20];
-    buffer[0] = 0x01;
-    buffer[1] = 0x00;
-    buffer[2] = 0x00;
-    buffer[3] = 0x01;
-    buffer[4] = 0x04;
-    printf("%d\n", (buffer[1] << 24 | buffer[2] << 16 | buffer[3] << 8 | buffer[4]));
-    printf("%d\n", (buffer[4] << 24 | buffer[3] << 16 | buffer[2] << 8 | buffer[1]));
-    // printf()
-
-    Request *req = deserializeRequest(buffer);
-    printf("completed\n");
-
     int no_threads = 0;
     pthread_t threads[BACKLOG];
     while (no_threads < BACKLOG)
@@ -153,7 +140,7 @@ void *connection_handler(void *connectFd)
             break;
         }
 
-        printf("\n============================\n");
+        printf("\n============================\n\n");
         for (int i = 0; i < valread; i++)
         {
             printf("%X", inBuffer[i]);
@@ -162,39 +149,32 @@ void *connection_handler(void *connectFd)
 
         Request *req = deserializeRequest(inBuffer);
 
-        if (req->type != INVALID)
-        {
-            memcpy(outBuffer, inBuffer, valread);
-            // Send
-            send(socket, outBuffer, sizeof(outBuffer), 0);
-            for (int i = 0; i < valread; i++)
-            {
-                printf("%X", inBuffer[i]);
-            }
-            printf("\n");
-            printf("\n============================\n");
-        }
-
         switch (req->type)
         {
         case CREATE_ROOM:
             room = createRoom(socket, room, pthread_self());
+            updateRoomStatus(socket, room);
             break;
 
         case QUICK_JOIN:
             room = quickJoin(socket, room, pthread_self());
-            //send back res
+            updateRoomStatus(socket, room);
             break;
 
         case JOIN_A_ROOM:;
             printf("%d\n", req->roomId);
             room = joinARoom(socket, room, req->roomId);
-            //send back res
+            updateRoomStatus(socket, room);
             break;
 
         case READY:
             ready(socket, room);
-            //send back res
+            updateRoomStatus(socket, room);
+            if (calculateNumberOfReadiedClient(room) >= 4)
+            {
+                initGame(socket, room);
+                room->isPlaying = true;
+            }
             break;
 
         case MOVE:
@@ -222,6 +202,7 @@ void *connection_handler(void *connectFd)
         perror("Read error");
         exit(EXIT_FAILURE);
     }
+
     // Close connected socket
     close(socket);
 
@@ -368,14 +349,57 @@ void ready(int socketFd, Room *room)
 
 void quitGame(int socketFd, Room *room)
 {
+    
 }
 
-void updateRoomStatus(int socketFd, Room *room, RoomStatus *roomStatus)
+void updateRoomStatus(int socketFd, Room *room)
 {
+    if (room != NULL)
+    {
+        unsigned char *buffer;
+        Response *res = (Response *)malloc(sizeof(Response));
+        res->type = ROOM_STATUS_UPDATE;
+        res->success = true;
+
+        RoomStatus *status = (RoomStatus *)malloc(sizeof(RoomStatus));
+        status->players = calculateNumberOfClientInRoom(room);
+        status->ready = calculateNumberOfReadiedClient(room);
+
+        res->roomStatus = status;
+
+        buffer = serializeResponse(res);
+
+        send(socketFd, buffer, sizeof(buffer), 0);
+
+        free(buffer);
+        freeResponse(res);
+    }
 }
 
-void initGame(int socketFd, Room *room, GameInitInfo *gameInitInfo)
+void initGame(int socketFd, Room *room)
 {
+    unsigned char *buffer;
+    Response *res = (Response *)malloc(sizeof(Response));
+    res->type = GAME_INIT;
+    res->success = true;
+
+    GameInitInfo *gi = (GameInitInfo *)malloc(sizeof(GameInitInfo));
+    for (int i = 0; i < calculateNumberOfClientInRoom(room); i++)
+    {
+        if (socketFd == room->clientFd[i])
+        {
+            gi->yourColor = i;
+        }
+    }
+
+    res->gameInitInfo = gi;
+
+    buffer = serializeResponse(res);
+
+    send(socketFd, buffer, sizeof(buffer), 0);
+
+    free(buffer);
+    freeResponse(res);
 }
 
 void move(int socketFd, Room *room, Move *move)
@@ -384,7 +408,7 @@ void move(int socketFd, Room *room, Move *move)
     Response *res = (Response *)malloc(sizeof(Response));
     res->type = MOVE;
 
-    if (move != NULL)
+    if (move != NULL && room->isPlaying == true)
     {
         res->success = true;
         res->move = move;
@@ -401,7 +425,7 @@ void move(int socketFd, Room *room, Move *move)
     else
     {
         res->success = false;
-        strcpy(res->err, "MOVE BROKEN");
+        strcpy(res->err, "INVALID MOVE");
         buffer = serializeResponse(res);
         send(socketFd, buffer, sizeof(buffer), 0);
     }
@@ -411,5 +435,11 @@ void move(int socketFd, Room *room, Move *move)
 
 void invalid(int socketFd)
 {
-    send(socketFd, "INVALID MESSAGE", sizeof("INVALID MESSAGE"), 0);
+    unsigned char *buffer;
+    Response *res = (Response *)malloc(sizeof(Response));
+    res->type = INVALID;
+    res->success = false;
+    strcpy(res->err, "INVALID MESSSAGE TYPE");
+    free(buffer);
+    freeResponse(res);
 }

@@ -12,6 +12,10 @@
 #define PORT 5500
 #define IP "127.0.0.1"
 
+void *send_handler(void *);
+
+void *recv_handler(void *);
+
 int main(int argc, char const *argv[])
 {
     int socketFd, valread;
@@ -42,36 +46,39 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    printf("\n============================\n");
-    //check file name to server
-    outBuffer[0] = 0x03;
-    outBuffer[1] = 0x00;
-    outBuffer[2] = 0x00;
-    outBuffer[3] = 0x01;
-    outBuffer[4] = 0x04;
-    send(socketFd, outBuffer, 5, 0);
-    printf("Sent: ");
-    for (int i = 0; i < 5; i++)
+    pthread_t threads[2];
+    while (1)
     {
-        printf("%X", outBuffer[i]);
+        if (pthread_create(&threads[0], NULL, send_handler, &socketFd) < 0)
+        {
+            perror("Could not create thread");
+            return 1;
+        }
+        if (pthread_create(&threads[0], NULL, recv_handler, &socketFd) < 0)
+        {
+            perror("Could not create thread");
+            return 1;
+        }
+        printf("Connected to the server...\n");
     }
-    printf("\n");
-
-    // Receive from server
-    valread = recv(socketFd, inBuffer, BUFFER_SIZE, 0);
-    printf("Recieved: ");
-    for (int i = 0; i < 5; i++)
-    {
-        printf("%X", inBuffer[i]);
-    }
-    printf("\n");
-
-    // Clean buffer
-    memset(inBuffer, 0, sizeof(inBuffer));
-    memset(outBuffer, 0, sizeof(outBuffer));
-    printf("\n============================\n");
-    printf("\nEnter message: ");
 
     close(socketFd);
     return 0;
+}
+
+void *send_handler(void *socketFd)
+{
+    int socket = *(int *)socketFd;
+    unsigned char outBuffer[BUFFER_SIZE];
+    int valread;
+    Room *room;
+}
+
+void *recv_handler(void *socketFd)
+{
+    int socket = *(int *)socketFd;
+    unsigned char inBuffer[BUFFER_SIZE];
+    unsigned char outBuffer[BUFFER_SIZE];
+    int valread;
+    Room *room;
 }
