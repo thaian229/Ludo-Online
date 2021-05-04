@@ -1,13 +1,19 @@
-#include "deserialize.h"
+#include "serialize.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "utils.h"
 
-Request *deserializeRequest(unsigned char *buffer)
+unsigned char *serializeRequest(Request *req)
 {
-    Request *req = (Request *)malloc(sizeof(Request));
-    buffer = deserialize_type(buffer, &req->type);
+    unsigned char *buffer = (unsigned char *)malloc(512);
+
+    unsigned char *ptr;
+
+    ptr = buffer;
+
+    ptr = serialize_type(ptr, req->type);
+
     switch (req->type)
     {
     case CREATE_ROOM:
@@ -17,16 +23,14 @@ Request *deserializeRequest(unsigned char *buffer)
         break;
 
     case JOIN_A_ROOM:
-        buffer = deserialize_int(buffer, &req->roomId);
+        ptr = serialize_int(ptr, req->roomId);
         break;
 
-    case MOVE:;
-        Move *move = (Move *)malloc(sizeof(Move));
-        req->move = move;
-        buffer = deserialize_int(buffer, &req->move->turn);
-        buffer = deserialize_int(buffer, &req->move->diceValue);
-        buffer = deserialize_int(buffer, &req->move->moveX);
-        buffer = deserialize_int(buffer, &req->move->moveY);
+    case MOVE:
+        ptr = serialize_int(ptr, req->move->turn);
+        ptr = serialize_int(ptr, req->move->diceValue);
+        ptr = serialize_int(ptr, req->move->moveX);
+        ptr = serialize_int(ptr, req->move->moveY);
         break;
 
     default:
@@ -34,9 +38,8 @@ Request *deserializeRequest(unsigned char *buffer)
         req->type = INVALID;
         break;
     }
-    return req;
+    return buffer;
 }
-
 
 void freeRequest(Request *req)
 {

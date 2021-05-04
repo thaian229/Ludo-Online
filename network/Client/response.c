@@ -1,58 +1,66 @@
 #include "response.h"
-#include "serialize.h"
+#include "deserialize.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "utils.h"
 
-unsigned char *serializeResponse(Response *res)
+Response *deserializeResponse(unsigned char *buffer)
 {
-    unsigned char *buffer = (unsigned char *)malloc(512);
+    Response *res = (Response *)malloc(sizeof(Response));
 
-    unsigned char *ptr;
+    buffer = deserialize_bool(buffer, &res->success);
 
-    ptr = buffer;
+    buffer = deserialize_type(buffer, &res->type);
 
-    ptr = serialize_bool(ptr, res->success);
-    ptr = serialize_type(ptr, res->type);
-
-    if(!res->success) {
-        ptr = serialize_string(ptr, res->err);
-        return buffer;
+    if (!res->success)
+    {
+        buffer = deserialize_string(buffer, res->err);
+        return res;
     }
 
     switch (res->type)
     {
-    case ROOM_STATUS_UPDATE:
-        ptr = serialize_int(ptr, res->roomStatus->players);
-        ptr = serialize_int(ptr, res->roomStatus->ready);
+    case ROOM_STATUS_UPDATE:;
+        RoomStatus *rs = (RoomStatus *)malloc(sizeof(RoomStatus));
+        res->roomStatus = rs;
+
+        buffer = deserialize_int(buffer, &res->roomStatus->players);
+        buffer = deserialize_int(buffer, &res->roomStatus->ready);
         break;
 
-    case GAME_INIT:
-        ptr = serialize_int(ptr, res->gameInitInfo->yourColor);
-        ptr = serialize_int(ptr, res->gameInitInfo->playerCount);
+    case GAME_INIT:;
+        GameInitInfo *gif = (GameInitInfo *)malloc(sizeof(GameInitInfo));
+        res->gameInitInfo = gif;
+
+        buffer = deserialize_int(buffer, &res->gameInitInfo->yourColor);
+        buffer = deserialize_int(buffer, &res->gameInitInfo->playerCount);
         break;
 
-    case MOVE:
-        ptr = serialize_int(ptr, res->move->turn);
-        ptr = serialize_int(ptr, res->move->diceValue);
-        ptr = serialize_int(ptr, res->move->moveX);
-        ptr = serialize_int(ptr, res->move->moveY);
+    case MOVE:;
+        Move *move = (Move *)malloc(sizeof(Move));
+        res->move = move;
+        buffer = deserialize_int(buffer, &res->move->turn);
+        buffer = deserialize_int(buffer, &res->move->diceValue);
+        buffer = deserialize_int(buffer, &res->move->moveX);
+        buffer = deserialize_int(buffer, &res->move->moveY);
         break;
 
     case CREATE_ROOM_RESPONSE:
     case QUICK_JOIN_RESPONSE:
     case JOIN_A_ROOM_RESPONSE:
-        ptr = serialize_int(ptr, res->roomId);
+        buffer = deserialize_int(buffer, &res->roomId);
         break;
 
     case READY_RESPONSE:
         break;
+
     default:
         printf("ERR: CAN'T GET TYPE FROM MESSAGE\n");
         break;
     }
-    return buffer;
+
+    return res;
 }
 
 void freeResponse(Response *res)

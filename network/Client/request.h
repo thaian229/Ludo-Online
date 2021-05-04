@@ -41,7 +41,7 @@ typedef struct Request
     };
 } Request;
 
-Request *deserializeRequest(unsigned char *buffer);
+unsigned char *serializeRequest(Request *req);
 
 void freeRequest(Request *req);
 

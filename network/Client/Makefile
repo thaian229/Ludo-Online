@@ -3,10 +3,10 @@ CC = gcc
 LIBS =  -lm 
 
 
-all: clean client
+all: clean client.so
 
-client: client.c utils.o serialize.o deserialize.o request.o response.o
-	${CC} -pthread client.c utils.o serialize.o deserialize.o request.o response.o -o client 
+client.so: client.c utils.o serialize.o deserialize.o request.o response.o 
+	${CC} -pthread -fPIC -shared client.c utils.o serialize.o deserialize.o request.o response.o -o client.so
 
 # client: client.c
 # 	${CC} -pthread client.c -o client 
@@ -22,5 +22,8 @@ request.o: request.c
 response.o: response.c
 	${CC} ${CFLAGS} response.c
 
+utils.o: utils.c
+	${CC} ${CFLAGS} utils.c
+
 clean:
-	rm -f client *.o
+	rm -f client.so *.o

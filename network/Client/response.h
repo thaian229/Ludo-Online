@@ -29,7 +29,7 @@ typedef struct Response
     };
 } Response;
 
-unsigned char *serializeResponse(Response *res);
+Response *deserializeResponse(unsigned char *buffer);
 
 void freeResponse(Response *res);
 
