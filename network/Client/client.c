@@ -23,15 +23,13 @@ int portNumber;
 
 unsigned char inBuffer[BUFFER_SIZE] = {0};
 
-unsigned char outBuffer[BUFFER_SIZE] = {0};
-
 pthread_t threads[2] = {0};
 
 //message
 bool res_success;
 
 //room id
-int ri_roomId;
+int ri_roomId = 0;
 
 //move
 int m_moveX;
@@ -51,7 +49,6 @@ int gif_playerCount;
 // void *send_handler(void *);
 
 void *recv_handler(void *);
-
 
 void handle_room_status_update(RoomStatus *roomStatus);
 void handle_game_init(GameInitInfo *gif);
@@ -126,6 +123,13 @@ void *recv_handler(void *socketFd)
     int valread;
     while (valread = read(socket, inBuffer, sizeof(inBuffer)))
     {
+        printf("\n============================\n\n");
+        for (int i = 0; i < valread; i++)
+        {
+            printf("%X", inBuffer[i]);
+        }
+        printf("\n\n============================\n\n");
+
         Response *res = deserializeResponse(inBuffer);
 
         if (res->success)
@@ -174,8 +178,6 @@ void *recv_handler(void *socketFd)
     }
 }
 
-
-
 void handle_room_status_update(RoomStatus *roomStatus)
 {
     rs_players = roomStatus->players;
@@ -215,11 +217,14 @@ void handle_join_a_room(int roomId)
 //     case CREATE_ROOM:
 void send_create_room()
 {
+
     Request *req = (Request *)malloc(sizeof(Request));
 
     req->type = CREATE_ROOM;
 
-    strcpy(outBuffer, serializeRequest(req));
+    unsigned char *outBuffer;
+
+    outBuffer = serializeRequest(req);
 
     send(socketFd, outBuffer, sizeof(outBuffer), 0);
 
@@ -234,7 +239,9 @@ void send_quick_join()
 
     req->type = QUICK_JOIN;
 
-    strcpy(outBuffer, serializeRequest(req));
+    unsigned char *outBuffer;
+
+    outBuffer = serializeRequest(req);
 
     send(socketFd, outBuffer, sizeof(outBuffer), 0);
 
@@ -249,8 +256,9 @@ void send_ready()
 
     req->type = READY;
 
-    strcpy(outBuffer, serializeRequest(req));
+    unsigned char *outBuffer;
 
+    outBuffer = serializeRequest(req);
     send(socketFd, outBuffer, sizeof(outBuffer), 0);
 
     freeRequest(req);
@@ -264,7 +272,9 @@ void send_quit_game()
 
     req->type = QUIT_GAME;
 
-    strcpy(outBuffer, serializeRequest(req));
+    unsigned char *outBuffer;
+
+    outBuffer = serializeRequest(req);
 
     send(socketFd, outBuffer, sizeof(outBuffer), 0);
 
@@ -282,7 +292,9 @@ void send_join_a_room(int id)
     req->type = JOIN_A_ROOM;
     req->roomId = id;
 
-    strcpy(outBuffer, serializeRequest(req));
+    unsigned char *outBuffer;
+
+    outBuffer = serializeRequest(req);
 
     send(socketFd, outBuffer, sizeof(outBuffer), 0);
 
@@ -304,10 +316,37 @@ void send_move(int turn, int dice, int moveX, int moveY)
     req->type = CREATE_ROOM;
     req->move = move;
 
-    strcpy(outBuffer, serializeRequest(req));
+    unsigned char *outBuffer;
+
+    outBuffer = serializeRequest(req);
 
     send(socketFd, outBuffer, sizeof(outBuffer), 0);
 
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
+}
+
+void main()
+{
+    connect_to_server();
+    send_join_a_room(5);
+
+    printf("done\n");
+
+    send_create_room();
+
+    printf("done\n");
+
+    while (ri_roomId == 0)
+    {
+        /* code */
+    }
+    printf("%d\n", ri_roomId);
+    // send_ready();
+    // send_move(1, 6, 3, 2);
+    while (1)
+    {
+        /* code */
+    }
+    
 }

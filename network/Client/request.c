@@ -24,6 +24,7 @@ unsigned char *serializeRequest(Request *req)
 
     case JOIN_A_ROOM:
         ptr = serialize_int(ptr, req->roomId);
+        printf("%d\n", req->roomId);
         break;
 
     case MOVE:

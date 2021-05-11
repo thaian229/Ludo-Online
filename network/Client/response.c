@@ -50,6 +50,8 @@ Response *deserializeResponse(unsigned char *buffer)
     case QUICK_JOIN_RESPONSE:
     case JOIN_A_ROOM_RESPONSE:
         buffer = deserialize_int(buffer, &res->roomId);
+        printf("roomid: %d\n", res->roomId);
+        printf("here\n");
         break;
 
     case READY_RESPONSE:

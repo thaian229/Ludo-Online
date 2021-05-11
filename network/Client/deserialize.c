@@ -6,8 +6,11 @@
 unsigned char *deserialize_int(unsigned char *buffer, int *value)
 {
     unsigned int tmp = (buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24);
-    printf("%d\n", tmp);
-    *value = ntohl(tmp);
+    // unsigned int tmp = (buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3] << 0);
+    // printf("%d\n", tmp);
+    // *value = ntohl(tmp);
+    // printf("%d ", ntohl(tmp));
+    *value = tmp;
     return buffer + 4;
 }
 

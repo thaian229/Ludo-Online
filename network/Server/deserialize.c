@@ -6,8 +6,10 @@
 unsigned char *deserialize_int(unsigned char *buffer, int *value)
 {
     unsigned int tmp = (buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24);
-    printf("%d\n", tmp);
-    *value = ntohl(tmp);
+    // unsigned int tmp = (buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3] << 0);
+    // printf("%d\n", tmp);
+    // *value = ntohl(tmp);
+    *value = tmp;
     return buffer + 4;
 }
 
@@ -58,27 +60,27 @@ unsigned char *deserialize_type(unsigned char *buffer, Type *value)
     case 0x10:
         *value = CREATE_ROOM_RESPONSE;
         break;
-    
+
     case 0x20:
         *value = QUICK_JOIN_RESPONSE;
         break;
-    
+
     case 0x30:
         *value = JOIN_A_ROOM_RESPONSE;
         break;
-    
+
     case 0x40:
         *value = READY_RESPONSE;
         break;
-    
+
     case 0x50:
         *value = ROOM_STATUS_UPDATE;
         break;
-   
+
     case 0x60:
         *value = GAME_INIT;
         break;
-   
+
     default:
         *value = INVALID;
         break;
@@ -96,6 +98,7 @@ unsigned char *deserialize_string(unsigned char *buffer, char *value)
         buffer++;
         tmp++;
     }
+
 
     return buffer + 1;
 }

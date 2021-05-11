@@ -7,7 +7,9 @@
 Request *deserializeRequest(unsigned char *buffer)
 {
     Request *req = (Request *)malloc(sizeof(Request));
+
     buffer = deserialize_type(buffer, &req->type);
+
     switch (req->type)
     {
     case CREATE_ROOM:
@@ -34,6 +36,7 @@ Request *deserializeRequest(unsigned char *buffer)
         req->type = INVALID;
         break;
     }
+    
     return req;
 }
 

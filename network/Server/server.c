@@ -19,12 +19,13 @@
 #define BUFFER_SIZE 512
 #define PORT 5500
 #define BACKLOG 16
+#define MAXROOM 256
 
 void *connection_handler(void *);
 
-Room *createRoom(int socketFd, Room *curRoom, int newRoomId);
+Room *createRoom(int socketFd, Room *curRoom);
 
-Room *quickJoin(int socketFd, Room *curRoom, int backupRoomId);
+Room *quickJoin(int socketFd, Room *curRoom);
 
 Room *joinARoom(int socketFd, Room *curRoom, int roomId);
 
@@ -40,7 +41,11 @@ void quitGame(int socketFd, Room *room);
 
 void invalid(int socketFd);
 
+int findEmptyRoomId();
+
 Room *head;
+
+int roomIds[MAXROOM] = {0};
 
 int main(int argc, char const *argv[])
 {
@@ -59,7 +64,7 @@ int main(int argc, char const *argv[])
     }
 
     // Forcefully attaching socket to the port
-    if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)))
     {
         perror("setsockopt");
         exit(EXIT_FAILURE);
@@ -127,11 +132,11 @@ void *connection_handler(void *connectFd)
     int socket = *(int *)connectFd;
     int read_len;
     unsigned char inBuffer[BUFFER_SIZE];
-    unsigned char outBuffer[BUFFER_SIZE];
+    // unsigned char *outBuffer;
     int valread;
     Room *room;
 
-    while ((valread = read(socket, inBuffer, BUFFER_SIZE)) > 0)
+    while ((valread = read(socket, inBuffer, sizeof(inBuffer))) > 0)
     {
         // Terminate on empty
         if (inBuffer[0] == 0 || strcmp(inBuffer, "q") == 0 || strcmp(inBuffer, "Q") == 0)
@@ -145,6 +150,7 @@ void *connection_handler(void *connectFd)
         {
             printf("%X", inBuffer[i]);
         }
+
         printf("\n");
 
         Request *req = deserializeRequest(inBuffer);
@@ -152,19 +158,20 @@ void *connection_handler(void *connectFd)
         switch (req->type)
         {
         case CREATE_ROOM:
-            room = createRoom(socket, room, pthread_self());
-            updateRoomStatus(socket, room);
+
+            room = createRoom(socket, room);
+            // updateRoomStatus(socket, room);
             break;
 
         case QUICK_JOIN:
-            room = quickJoin(socket, room, pthread_self());
-            updateRoomStatus(socket, room);
+            room = quickJoin(socket, room);
+            // updateRoomStatus(socket, room);
             break;
 
         case JOIN_A_ROOM:;
             printf("%d\n", req->roomId);
             room = joinARoom(socket, room, req->roomId);
-            updateRoomStatus(socket, room);
+            // updateRoomStatus(socket, room);
             break;
 
         case READY:
@@ -194,7 +201,7 @@ void *connection_handler(void *connectFd)
 
         // Clean buffer
         memset(inBuffer, 0, sizeof(inBuffer));
-        memset(outBuffer, 0, sizeof(outBuffer));
+        // memset(outBuffer, 0, sizeof(outBuffer));
     }
 
     if (valread < 0)
@@ -209,7 +216,7 @@ void *connection_handler(void *connectFd)
     return 0;
 }
 
-Room *createRoom(int socketFd, Room *curRoom, int newRoomId)
+Room *createRoom(int socketFd, Room *curRoom)
 {
     unsigned char *buffer;
     Response *res = (Response *)malloc(sizeof(Response));
@@ -217,7 +224,9 @@ Room *createRoom(int socketFd, Room *curRoom, int newRoomId)
 
     if (curRoom == NULL)
     {
-        Room *room = addRoom(head, newRoomId, socketFd);
+        int roomId = findEmptyRoomId();
+        Room *room = addRoom(head, roomId, socketFd);
+        roomIds[roomId] = 1;
 
         res->success = true;
         res->roomId = room->id;
@@ -242,7 +251,7 @@ Room *createRoom(int socketFd, Room *curRoom, int newRoomId)
     }
 }
 
-Room *quickJoin(int socketFd, Room *curRoom, int backupRoomId)
+Room *quickJoin(int socketFd, Room *curRoom)
 {
     unsigned char *buffer;
     Response *res = (Response *)malloc(sizeof(Response));
@@ -250,7 +259,9 @@ Room *quickJoin(int socketFd, Room *curRoom, int backupRoomId)
 
     if (curRoom == NULL)
     {
-        Room *room = quickJoinRoom(head, backupRoomId, socketFd);
+        int roomId = findEmptyRoomId();
+        Room *room = quickJoinRoom(head, roomId, socketFd);
+        roomIds[roomId] = 1;
 
         res->success = true;
         res->roomId = room->id;
@@ -349,7 +360,6 @@ void ready(int socketFd, Room *room)
 
 void quitGame(int socketFd, Room *room)
 {
-    
 }
 
 void updateRoomStatus(int socketFd, Room *room)
@@ -372,7 +382,7 @@ void updateRoomStatus(int socketFd, Room *room)
         send(socketFd, buffer, sizeof(buffer), 0);
 
         free(buffer);
-        freeResponse(res);
+        // freeResponse(res);
     }
 }
 
@@ -442,4 +452,16 @@ void invalid(int socketFd)
     strcpy(res->err, "INVALID MESSSAGE TYPE");
     free(buffer);
     freeResponse(res);
+}
+
+int findEmptyRoomId()
+{
+    int roomid;
+    for (int i = 0; i < MAXROOM; i++)
+    {
+        if (roomIds[i] == 0)
+        {
+            return i;
+        }
+    }
 }

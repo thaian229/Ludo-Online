@@ -16,7 +16,8 @@ unsigned char *serializeResponse(Response *res)
     ptr = serialize_bool(ptr, res->success);
     ptr = serialize_type(ptr, res->type);
 
-    if(!res->success) {
+    if (!res->success)
+    {
         ptr = serialize_string(ptr, res->err);
         return buffer;
     }
@@ -43,6 +44,7 @@ unsigned char *serializeResponse(Response *res)
     case CREATE_ROOM_RESPONSE:
     case QUICK_JOIN_RESPONSE:
     case JOIN_A_ROOM_RESPONSE:
+        printf("roomID: %d\n", res->roomId);
         ptr = serialize_int(ptr, res->roomId);
         break;
 

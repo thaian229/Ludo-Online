@@ -6,12 +6,14 @@
 
 unsigned char *serialize_int(unsigned char *buffer, int value)
 {
-    value = htonl(value);
+    // value = htonl(value);
 
     buffer[0] = value;
     buffer[1] = value >> 8;
     buffer[2] = value >> 16;
     buffer[3] = value >> 24;
+
+    // printf("DI: %d\n",value);
 
     return buffer + 4;
 }
