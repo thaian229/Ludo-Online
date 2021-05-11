@@ -123,58 +123,65 @@ void *recv_handler(void *socketFd)
     int valread;
     while (valread = read(socket, inBuffer, sizeof(inBuffer)))
     {
-        printf("\n============================\n\n");
-        for (int i = 0; i < valread; i++)
+        if (valread >= 0)
         {
-            printf("%X", inBuffer[i]);
-        }
-        printf("\n\n============================\n\n");
-
-        Response *res = deserializeResponse(inBuffer);
-
-        if (res->success)
-        {
-            switch (res->type)
+            printf("\n============================\n\n");
+            for (int i = 0; i < valread; i++)
             {
-            case ROOM_STATUS_UPDATE:
-                handle_room_status_update(res->roomStatus);
-                break;
-
-            case GAME_INIT:
-                handle_game_init(res->gameInitInfo);
-                break;
-
-            case MOVE:
-                handle_move(res->move);
-                break;
-
-            case CREATE_ROOM_RESPONSE:
-                handle_room_create(res->roomId);
-                break;
-
-            case QUICK_JOIN_RESPONSE:
-                handle_quick_join(res->roomId);
-                break;
-
-            case JOIN_A_ROOM_RESPONSE:
-                handle_join_a_room(res->roomId);
-                break;
-
-            case READY_RESPONSE:
-                break;
-
-            default:
-                // printf("Error: %s\n", "INVALID TYPE");
-                break;
+                printf("%X", inBuffer[i]);
             }
-        }
-        else
-        {
-            printf("Error: %s\n", res->err);
-        }
+            printf("\n\n============================\n\n");
 
-        freeResponse(res);
-        memset(inBuffer, 0, sizeof(inBuffer));
+            Response *res = deserializeResponse(inBuffer);
+
+            if (res->success)
+            {
+                switch (res->type)
+                {
+                case ROOM_STATUS_UPDATE:
+                    // printf("UPDATE\n");
+                    handle_room_status_update(res->roomStatus);
+                    break;
+
+                case GAME_INIT:
+                    // printf("INIT\n");
+                    handle_game_init(res->gameInitInfo);
+                    break;
+
+                case MOVE:
+                    // printf("MOVE\n");
+                    handle_move(res->move);
+                    break;
+
+                case CREATE_ROOM_RESPONSE:
+                    handle_room_create(res->roomId);
+                    break;
+
+                case QUICK_JOIN_RESPONSE:
+                    handle_quick_join(res->roomId);
+                    break;
+
+                case JOIN_A_ROOM_RESPONSE:
+                    handle_join_a_room(res->roomId);
+                    break;
+
+                case READY_RESPONSE:
+
+                    break;
+
+                default:
+                    // printf("Error: %s\n", "INVALID TYPE");
+                    break;
+                }
+            }
+            else
+            {
+                printf("Error: %s\n", res->err);
+            }
+
+            // freeResponse(res);
+            memset(inBuffer, 0, sizeof(inBuffer));
+        }
     }
 }
 
@@ -226,7 +233,9 @@ void send_create_room()
 
     outBuffer = serializeRequest(req);
 
-    send(socketFd, outBuffer, sizeof(outBuffer), 0);
+    send(socketFd, outBuffer, BUFFER_SIZE, 0);
+
+    free(outBuffer);
 
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
@@ -243,7 +252,9 @@ void send_quick_join()
 
     outBuffer = serializeRequest(req);
 
-    send(socketFd, outBuffer, sizeof(outBuffer), 0);
+    send(socketFd, outBuffer, BUFFER_SIZE, 0);
+
+    free(outBuffer);
 
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
@@ -259,7 +270,9 @@ void send_ready()
     unsigned char *outBuffer;
 
     outBuffer = serializeRequest(req);
-    send(socketFd, outBuffer, sizeof(outBuffer), 0);
+    send(socketFd, outBuffer, BUFFER_SIZE, 0);
+
+    free(outBuffer);
 
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
@@ -276,10 +289,11 @@ void send_quit_game()
 
     outBuffer = serializeRequest(req);
 
-    send(socketFd, outBuffer, sizeof(outBuffer), 0);
+    send(socketFd, outBuffer, BUFFER_SIZE, 0);
 
     close_connection();
 
+    free(outBuffer);
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
 }
@@ -296,7 +310,9 @@ void send_join_a_room(int id)
 
     outBuffer = serializeRequest(req);
 
-    send(socketFd, outBuffer, sizeof(outBuffer), 0);
+    send(socketFd, outBuffer, BUFFER_SIZE, 0);
+
+    free(outBuffer);
 
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
@@ -320,7 +336,9 @@ void send_move(int turn, int dice, int moveX, int moveY)
 
     outBuffer = serializeRequest(req);
 
-    send(socketFd, outBuffer, sizeof(outBuffer), 0);
+    send(socketFd, outBuffer, BUFFER_SIZE, 0);
+
+    free(outBuffer);
 
     freeRequest(req);
     memset(inBuffer, 0, sizeof(inBuffer));
@@ -329,24 +347,23 @@ void send_move(int turn, int dice, int moveX, int moveY)
 void main()
 {
     connect_to_server();
-    send_join_a_room(5);
+    // send_join_a_room(5);
 
-    printf("done\n");
+    // printf("done\n");
 
     send_create_room();
 
-    printf("done\n");
+    // printf("done\n");
 
-    while (ri_roomId == 0)
-    {
-        /* code */
-    }
-    printf("%d\n", ri_roomId);
+    // while (ri_roomId == 0)
+    // {
+    //     /* code */
+    // }
+    // printf("%d\n", ri_roomId);
     // send_ready();
-    // send_move(1, 6, 3, 2);
+    send_move(1, 6, 3, 2);
     while (1)
     {
         /* code */
     }
-    
 }

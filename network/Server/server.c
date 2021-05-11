@@ -132,7 +132,7 @@ void *connection_handler(void *connectFd)
     int socket = *(int *)connectFd;
     int read_len;
     unsigned char inBuffer[BUFFER_SIZE];
-    // unsigned char *outBuffer;
+    unsigned char *outBuffer;
     int valread;
     Room *room;
 
@@ -177,8 +177,13 @@ void *connection_handler(void *connectFd)
         case READY:
             ready(socket, room);
             updateRoomStatus(socket, room);
-            if (calculateNumberOfReadiedClient(room) >= 4)
+            int readyCount = calculateNumberOfReadiedClient(room);
+            printf("READIED\n");
+
+            if (readyCount == calculateNumberOfClientInRoom(room) && readyCount >= 2)
             {
+                printf("READIED\n");
+
                 initGame(socket, room);
                 room->isPlaying = true;
             }
@@ -233,10 +238,11 @@ Room *createRoom(int socketFd, Room *curRoom)
 
         buffer = serializeResponse(res);
 
-        send(socketFd, buffer, sizeof(buffer), 0);
+        send(socketFd, buffer, BUFFER_SIZE, 0);
 
         free(buffer);
         freeResponse(res);
+
         return room;
     }
     else
@@ -244,9 +250,12 @@ Room *createRoom(int socketFd, Room *curRoom)
         res->success = false;
         strcpy(res->err, "ALREADY IN ANOTHER ROOM");
         buffer = serializeResponse(res);
-        send(socketFd, buffer, sizeof(buffer), 0);
+
+        send(socketFd, buffer, BUFFER_SIZE, 0);
+
         free(buffer);
         freeResponse(res);
+
         return curRoom;
     }
 }
@@ -268,7 +277,7 @@ Room *quickJoin(int socketFd, Room *curRoom)
 
         buffer = serializeResponse(res);
 
-        send(socketFd, buffer, sizeof(buffer), 0);
+        send(socketFd, buffer, BUFFER_SIZE, 0);
 
         free(buffer);
         freeResponse(res);
@@ -279,7 +288,9 @@ Room *quickJoin(int socketFd, Room *curRoom)
         res->success = false;
         strcpy(res->err, "ALREADY IN ANOTHER ROOM");
         buffer = serializeResponse(res);
-        send(socketFd, buffer, sizeof(buffer), 0);
+
+        send(socketFd, buffer, BUFFER_SIZE, 0);
+
         free(buffer);
         freeResponse(res);
         return curRoom;
@@ -302,25 +313,31 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId)
 
             buffer = serializeResponse(res);
 
-            send(socketFd, buffer, sizeof(buffer), 0);
+            send(socketFd, buffer, BUFFER_SIZE, 0);
         }
         else
         {
             res->success = false;
             strcpy(res->err, "ROOM NOT FOUND");
             buffer = serializeResponse(res);
-            send(socketFd, buffer, sizeof(buffer), 0);
+
+            send(socketFd, buffer, BUFFER_SIZE, 0);
         }
+
         free(buffer);
         freeResponse(res);
+
         return room;
     }
     else
     {
         res->success = false;
         strcpy(res->err, "ALREADY IN ANOTHER ROOM");
+
         buffer = serializeResponse(res);
-        send(socketFd, buffer, sizeof(buffer), 0);
+
+        send(socketFd, buffer, BUFFER_SIZE, 0);
+
         free(buffer);
         freeResponse(res);
         return curRoom;
@@ -352,7 +369,8 @@ void ready(int socketFd, Room *room)
     }
 
     buffer = serializeResponse(res);
-    send(socketFd, buffer, sizeof(buffer), 0);
+
+    send(socketFd, buffer, BUFFER_SIZE, 0);
 
     free(buffer);
     freeResponse(res);
@@ -379,7 +397,7 @@ void updateRoomStatus(int socketFd, Room *room)
 
         buffer = serializeResponse(res);
 
-        send(socketFd, buffer, sizeof(buffer), 0);
+        send(socketFd, buffer, BUFFER_SIZE, 0);
 
         free(buffer);
         // freeResponse(res);
@@ -406,9 +424,10 @@ void initGame(int socketFd, Room *room)
 
     buffer = serializeResponse(res);
 
-    send(socketFd, buffer, sizeof(buffer), 0);
+    send(socketFd, buffer, BUFFER_SIZE, 0);
 
     free(buffer);
+
     freeResponse(res);
 }
 
@@ -428,7 +447,7 @@ void move(int socketFd, Room *room, Move *move)
         {
             if (room->clientFd[i] != socketFd && room->clientFd[i] != 0)
             {
-                send(room->clientFd[i], buffer, sizeof(buffer), 0);
+                send(room->clientFd[i], buffer, BUFFER_SIZE, 0);
             }
         }
     }
@@ -437,7 +456,7 @@ void move(int socketFd, Room *room, Move *move)
         res->success = false;
         strcpy(res->err, "INVALID MOVE");
         buffer = serializeResponse(res);
-        send(socketFd, buffer, sizeof(buffer), 0);
+        send(socketFd, buffer, BUFFER_SIZE, 0);
     }
     free(buffer);
     freeResponse(res);
@@ -457,7 +476,8 @@ void invalid(int socketFd)
 int findEmptyRoomId()
 {
     int roomid;
-    for (int i = 0; i < MAXROOM; i++)
+    
+    for (int i = 1; i < MAXROOM; i++)
     {
         if (roomIds[i] == 0)
         {

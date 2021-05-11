@@ -119,40 +119,50 @@ bool removeRoom(Room *head, int id)
 
 bool addClientToRoom(Room *room, int clientFd)
 {
-    for (int i = 0; i < 4; i++)
+    if (room != NULL)
     {
-        if (room->clientFd[i] == clientFd)
+        for (int i = 0; i < 4; i++)
         {
-            printf("ERR: Client is already in this room\n");
-            return false;
+            if (room->clientFd[i] == clientFd)
+            {
+                printf("ERR: Client is already in this room\n");
+                return false;
+            }
         }
-    }
 
-    for (int i = 0; i < 4; i++)
-    {
-        if (room->clientFd[i] == 0)
+        for (int i = 0; i < 4; i++)
         {
-            room->clientFd[i] = clientFd;
-            return true;
+            if (room->clientFd[i] == 0)
+            {
+                room->clientFd[i] = clientFd;
+                return true;
+            }
         }
-    }
 
-    printf("ERR: This room is full\n");
+        printf("ERR: This room is full\n");
+        return false;
+    }
+    printf("ERR: No room\n");
     return false;
 }
 
 bool removeClientFromRoom(Room *room, int clientFd)
 {
-    for (int i = 0; i < 4; i++)
+    if (room != NULL)
     {
-        if (room->clientFd[i] == clientFd)
+        for (int i = 0; i < 4; i++)
         {
-            room->clientFd[i] = 0;
-            return true;
+            if (room->clientFd[i] == clientFd)
+            {
+                room->clientFd[i] = 0;
+                room->ready[i] = false;
+                return true;
+            }
         }
+        printf("ERR: Client is not a member of this room\n");
+        return false;
     }
-
-    printf("ERR: Client is not a member of this room\n");
+    printf("ERR: No room\n");
     return false;
 }
 
@@ -175,24 +185,32 @@ bool updateReadyStatus(Room *room, int clientFd)
 int calculateNumberOfClientInRoom(Room *room)
 {
     int count = 0;
-    for (int i = 0; i < 4; i++)
+    if (room != NULL)
     {
-        if (room->clientFd[i] != 0)
+        for (int i = 0; i < 4; i++)
         {
-            count++;
+            if (room->clientFd[i] != 0)
+            {
+                count++;
+            }
         }
     }
+
     return count;
 }
 
 int calculateNumberOfReadiedClient(Room *room)
 {
     int count = 0;
-    for (int i = 0; i < 4; i++)
+    if (room != NULL)
     {
-        if (room->ready[i] == true)
+        for (int i = 0; i < 4; i++)
         {
-            count++;
+            if (room->ready[i] == true)
+            {
+                // printf("i = %d\n", i);
+                count++;
+            }
         }
     }
     return count;
