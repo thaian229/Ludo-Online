@@ -66,10 +66,10 @@ int connect_to_server();
 
 int close_connection()
 {
-    if (threads[0] != 0)
-    {
-        pthread_join(threads[0], NULL);
-    }
+    // if (threads[0] != 0)
+    // {
+    //     pthread_join(threads[0], NULL);
+    // }
 
     // if (threads[1] != 0)
     // {
@@ -79,6 +79,7 @@ int close_connection()
     if (socketFd != 0)
     {
         close(socketFd);
+        socketFd = 0;
         return 1;
     }
     else
@@ -90,6 +91,11 @@ int close_connection()
 int connect_to_server()
 {
     // Creating socket file descriptor
+    if (socketFd != 0)
+    {
+        return socketFd;
+    }
+
     if ((socketFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         perror("socket failed");
@@ -217,6 +223,7 @@ void handle_move(Move *move)
 void handle_quit(int quitted)
 {
     q_quiter = quitted;
+    q_quit_event_ready = true;
 }
 
 void handle_room_create(int roomId)
@@ -304,7 +311,7 @@ void send_quit_game()
 
     send(socketFd, outBuffer, BUFFER_SIZE, 0);
 
-    close_connection();
+    // close_connection();
 
     free(outBuffer);
     freeRequest(req);
@@ -491,10 +498,11 @@ void reset_game_info()
     ri_roomId = 0;
     rs_players = 0;
     rs_ready = 0;
+    gameStarted = false;
 
     gif_playerCount = 0;
-    gif_yourColor = -1;
+    gif_yourColor = 0;
 
-    q_quiter = -1;
+    q_quiter = 0;
     q_quit_event_ready = false;
 }

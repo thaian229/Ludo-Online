@@ -6,8 +6,8 @@ LIBS =  -lm
 # all: clean client.so
 all: clean client.c
 
-# client.so: client.c utils.o serialize.o deserialize.o request.o response.o 
-# 	${CC} -pthread -fPIC -shared client.c utils.o serialize.o deserialize.o request.o response.o -o client.so
+client.so: client.c utils.o serialize.o deserialize.o request.o response.o 
+	${CC} -pthread -fPIC -shared client.c utils.o serialize.o deserialize.o request.o response.o -o client.so
 
 client.c: client.c utils.o serialize.o deserialize.o request.o response.o 
 	${CC} -pthread client.c utils.o serialize.o deserialize.o request.o response.o -o client

@@ -153,3 +153,49 @@ class CreditsMenu(Menu):
             self.game.draw_text('Nguyen Thai An', 30, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 0)
             self.game.draw_text('Vu Minh Hoang', 30, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 50)
             self.blit_screen()
+
+
+class InputBox:
+
+    def __init__(self, game, x, y, w, h, text='0'):
+        self.game = game
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = self.game.RED
+        self.text = text
+        self.font = pygame.font.Font(self.game.font_name, 30)
+        self.txt_surface = self.font.render(text, True, self.color)
+        self.active = False
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # If the user clicked on the input_box rect.
+            if self.rect.collidepoint(event.pos):
+                # Toggle the active variable.
+                self.active = not self.active
+            else:
+                self.active = False
+            # Change the current color of the input box.
+            self.color = self.game.WHITE if self.active else self.game.RED
+        if event.type == pygame.KEYDOWN:
+            if self.active:
+                if event.key == pygame.K_RETURN:
+                    print(self.text)
+                    # self.text = ''
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    if event.unicode.isdigit():
+                        self.text += event.unicode
+                # Re-render the text.
+                self.txt_surface = self.font.render(self.text, True, self.color)
+
+    def update(self):
+        # Resize the box if the text is too long.
+        width = max(200, self.txt_surface.get_width() + 10)
+        self.rect.w = width
+
+    def draw(self, screen):
+        # Blit the text.
+        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+        # Blit the rect.
+        pygame.draw.rect(screen, self.color, self.rect, 2)

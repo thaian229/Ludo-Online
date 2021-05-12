@@ -1,4 +1,7 @@
+import pygame
+
 from menu import *
+from network import *
 import random
 
 
@@ -59,17 +62,19 @@ class Game:
         self.curr_menu = self.main_menu
 
         # all main game loop attributes
-        self.n = 4
-        self.players = 4
-        self.turn = 0
+        self.n = 4  # number of pieces for each player
+        self.players = 4  # number of players in match
+        self.turn = 0  # current turn
+        self.my_turn = 0  # player's turn (online mode)
+        self.quitters = []
         self.starting_one = []
         for i in range(4):
             self.starting_one.append([0 for _ in range(self.n)])
         self.game_fps = 30
         self.clock = pygame.time.Clock()
         self.game_percent = [0, 0, 0, 0]
-        self.dice = 0
-        self.winner = 0
+        self.dice = 0  # dice value
+        self.winner = 0  # who the winner
         self.chance = 1
         # for drawing
         self.BLACK, self.WHITE = (0, 0, 0), (255, 255, 255)
@@ -177,35 +182,76 @@ class Game:
 
     def game_loop_online(self):
         if self.playing_online:
-            room_players = 0
+            close_connection()
+            if not connect_to_server():
+                print("Connected.")
+                self.curr_menu = self.online_menu
+                self.curr_menu.run_display = True
+                self.playing_online = False
+                self.reset_keys()
+
+            room_players = 1
             room_ready = 0
             room_id = 0
 
             # based on online_menu.selection, do corresponding preparation before main loop
             if self.online_menu.selection == 'Create':
                 # send message to create new room
-                room_players = 1
+                send_create_room()
             elif self.online_menu.selection == 'Quick':
                 # send message to join any room
-                pass
+                send_quick_join()
             elif self.online_menu.selection == 'Id':
                 # display form for user to enter id
+                done_input = False
+                id_to_join = 0
+                input_box1 = InputBox(self, self.DISPLAY_W / 2 - 100, self.DISPLAY_H / 2 - 16, 200, 44)
+                input_boxes = [input_box1]
+                while not done_input:
+                    for event in pygame.event.get():
+                        for box in input_boxes:
+                            box.handle_event(event)
+                        if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_RETURN:
+                                try:
+                                    id_to_join = int(input_box1.text)
+                                except:
+                                    pass
+                                done_input = True
+
+                    for box in input_boxes:
+                        box.update()
+
+                    self.display.fill(self.BLACK)
+                    self.draw_text('Enter Room ID To Join', 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 - 100)
+                    self.draw_text('Hit Enter to Join', 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 + 100)
+                    for box in input_boxes:
+                        box.draw(self.display)
+
+                    self.window.blit(self.display, (0, 0))
+                    pygame.display.update()
+
                 # send message to join room with inputted room id
+                send_join_a_room(id_to_join)
                 pass
 
-            game_preparing = True
+            game_started = False
             is_ready = False
             # while not game started, looping to render Room Menu and handler ready and start message
-            while game_preparing:
-                if 1 < room_players == room_ready > 1:
-                    self.players = room_players
-                    game_preparing = False
+            while not game_started:
+                # if 1 < room_players == room_ready > 1:
+                #     self.players = room_players
+                #     game_started = True
 
                 self.check_events()
                 if self.START_KEY:
                     if not is_ready:
                         # send ready message
+                        send_ready()
                         is_ready = True
+
+                # network handling
+                room_id, room_players, room_ready, game_started = get_room_status()
 
                 # render Room Menu
                 self.display.fill(self.BLACK)
@@ -225,21 +271,77 @@ class Game:
                     self.curr_menu = self.online_menu
                     self.playing_online = False
                     self.reset_keys()
+                    send_quit_game()
                     break
                 self.reset_keys()
 
             # receive init information from server before really enter main loop
+            if game_started:
+                print("Before init: ", self.players, self.my_turn)
+                self.players, self.my_turn = get_game_init()
+                print("After init: ", self.players, self.my_turn)
 
         # main loop
         while self.playing_online:
-            self.check_events()
-            if self.START_KEY:
-                self.playing_online = False
-            self.display.fill(self.BLACK)
+            # self.check_events()
+            # if self.START_KEY:
+            #     self.playing_online = False
+            # self.display.fill(self.BLACK)
+            # self.draw_board()
+            # self.draw_text('Thanks for Playing Ludo Online', 20, self.DISPLAY_W / 2, self.DISPLAY_H / 2)
+            # self.window.blit(self.display, (0, 0))
+            # pygame.display.update()
+            # self.reset_keys()
+            # self.check_events()
+
+            self.chance = 1
+            self.turn = self.turn % self.players
+            while self.turn in self.quitters:
+                self.turn += 1
+                self.turn = self.turn % self.players
+
+            # Drawing
             self.draw_board()
-            self.draw_text('Thanks for Playing Ludo Online', 20, self.DISPLAY_W / 2, self.DISPLAY_H / 2)
+            # self.draw_text('Thanks for Playing Ludo Offline', 20, self.DISPLAY_W / 2, self.DISPLAY_H / 2)
+            try:
+                self.display.blit(pygame.image.load("assets/dice" + str(self.dice) + ".jpeg"),
+                                  ((self.DISPLAY_W - 200) / 2 - 40, self.DISPLAY_H / 2 - 40))
+            except:
+                pass
+
+            while self.game_over:
+                # GAME OVER
+                self.display.fill(self.BLACK)
+                self.draw_text("Game Over", 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 - 100)
+                self.draw_text("Winner is " + self.turn_color[self.winner], 30, self.DISPLAY_W / 2,
+                               self.DISPLAY_H / 2)
+                self.draw_text("Hit Enter To Quit", 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 + 50)
+
+                self.window.blit(self.display, (0, 0))
+                pygame.display.update()
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_RETURN:
+                            self.playing_online = False
+                            self.game_over = False
+                            self.curr_menu = self.main_menu
+                            self.quit_online_game()
+                        else:
+                            break
+
+            # Main Event Handler
+            self.online_events_handling()
+
+            # Handle quit game:
+            if self.BACK_KEY or self.START_KEY:
+                self.playing_online = False
+                self.curr_menu = self.main_menu
+                self.quit_online_game()
+
+            # Update Frame
             self.window.blit(self.display, (0, 0))
             pygame.display.update()
+            self.clock.tick(self.game_fps)
             self.reset_keys()
 
     def offline_events_handling(self):
@@ -356,6 +458,212 @@ class Game:
                     if self.chance == 1:
                         self.turn += 1
 
+    def online_events_handling(self):
+        rect = pygame.Rect(self.DISPLAY_W - 200, 0, 200, 600)
+        pygame.draw.rect(self.display, self.BLACK, rect)
+        if self.my_turn == self.turn:
+            self.message('TURN ' + self.turn_color[self.turn % self.players], self.WHITE, self.DISPLAY_W - 100,
+                         self.DISPLAY_H / 2 - 15)
+            self.message('YOUR TURN', self.GREEN, self.DISPLAY_W - 100,
+                         self.DISPLAY_H / 2 + 15)
+        else:
+            self.message('TURN ' + self.turn_color[self.turn % self.players], self.WHITE, self.DISPLAY_W - 100,
+                         self.DISPLAY_H / 2 - 15)
+            self.message('WAIT OTHER', self.RED, self.DISPLAY_W - 100,
+                         self.DISPLAY_H / 2 + 15)
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    self.START_KEY = True
+                if event.key == pygame.K_BACKSPACE:
+                    self.BACK_KEY = True
+                if event.key == pygame.K_DOWN:
+                    self.DOWN_KEY = True
+                if event.key == pygame.K_UP:
+                    self.UP_KEY = True
+            if event.type == pygame.QUIT:
+                self.running, self.playing_online = False, False
+                self.curr_menu.run_display = False
+                self.quit_online_game()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.my_turn == self.turn:
+                mx, my = pygame.mouse.get_pos()
+                if ((((self.DISPLAY_W - 200 - self.dice_img_size) / 2) - 3) < mx < (
+                        (((self.DISPLAY_W - 200 - self.dice_img_size) / 2) - 3) + self.dice_img_size)) and (
+                        (((self.DISPLAY_H - self.dice_img_size) / 2) - 3) < my < (
+                        (((self.DISPLAY_H - self.dice_img_size) / 2) - 3) + self.dice_img_size)):
+                    self.dice = random.randrange(1, 7)
+                    self.dice_roll(self.dice)
+                    self.user = -1
+                    # Motion for piece if it is pressed
+                    while True:
+                        # Manual movement
+                        if self.starting_one[self.turn % self.players].count(1) > 1 or self.dice == 1:
+                            for e in pygame.event.get():
+                                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                                    mouse_pos = pygame.mouse.get_pos()
+                                    xxx = self.check_if_piece_is_pressed(mouse_pos, self.turn % self.players)
+                                    if xxx == 0:
+                                        self.user = 0
+                                    elif xxx == 1:
+                                        self.user = 1
+                                    elif xxx == 2:
+                                        self.user = 2
+                                    elif xxx == 3:
+                                        self.user = 3
+                        # Auto movement
+                        else:
+                            try:
+                                self.user = self.starting_one[self.turn % self.players].index(1)
+                            except:
+                                self.user = 0
+                            pygame.time.delay(400)
+                        if self.user >= 0:
+                            break
+                    # apply a move:
+                    # send move to others
+                    print("Send move: ", self.turn, self.user, self.dice)
+                    send_move(self.turn, self.user, self.dice)
+                    # self-apply
+                    if self.dice == 1 or self.dice == 6:
+                        if self.dice == 1:
+                            self.starting_one[self.turn % self.players][self.user] = 1
+                        self.chance += 1
+                    if self.starting_one[self.turn % self.players][self.user] >= 1:
+                        checked = self.check_move(self.turn % self.players, self.dice)
+                        if self.position[self.turn % 4][self.user] + self.dice < 57:
+                            if self.check_kill(self.turn % self.players, self.dice, self.starting_one):
+                                self.chance += 1
+                        if checked == 2:
+                            self.game_percent[self.turn % 4] += 100 / self.n
+                            for any_percent in self.game_percent:
+                                if any_percent >= 99:
+                                    self.game_over = True
+                                    self.winner = self.turn % self.players
+                        # Validity of a move
+                        if checked == 0:
+                            self.message("Invalid Move", self.RED, self.DISPLAY_W - 200 + 15, self.DISPLAY_H / 2 - 40)
+                            if self.dice != 1 and self.dice != 6:
+                                self.turn += 1
+                            break
+                        else:
+                            for _ in range(1, self.dice + 1):
+                                self.display.blit(self.board, (0, 0))
+                                self.display.blit(pygame.image.load("assets/dice" + str(self.dice) + ".jpeg"),
+                                                  ((self.DISPLAY_W - 200) / 2 - 40, self.DISPLAY_H / 2 - 40))
+                                for u in range(self.n):
+                                    self.red_pieces[u].draw(
+                                        ([self.red_pieces[u].pos] + self.path_red)[self.position[0][u]])
+                                    self.yellow_pieces[u].draw(
+                                        ([self.yellow_pieces[u].pos] + self.path_yellow)[self.position[1][u]])
+                                    if self.players > 2:
+                                        self.blue_pieces[u].draw(
+                                            ([self.blue_pieces[u].pos] + self.path_blue)[self.position[2][u]])
+                                    if self.players > 3:
+                                        self.green_pieces[u].draw(
+                                            ([self.green_pieces[u].pos] + self.path_green)[self.position[3][u]])
+                                self.position[self.turn % self.players][self.user] += 1
+                                if self.turn % self.players == 0:
+                                    self.red_pieces[self.user].update(
+                                        self.position[self.turn % self.players][self.user],
+                                        [self.red_pieces[self.user].pos] + self.path_red)
+                                elif self.turn % self.players == 1:
+                                    self.yellow_pieces[self.user].update(
+                                        self.position[self.turn % self.players][self.user],
+                                        [self.yellow_pieces[
+                                             self.user].pos] + self.path_yellow)
+                                elif self.turn % self.players == 2:
+                                    self.blue_pieces[self.user].update(
+                                        self.position[self.turn % self.players][self.user],
+                                        [self.blue_pieces[self.user].pos] + self.path_blue)
+                                else:
+                                    self.green_pieces[self.user].update(
+                                        self.position[self.turn % self.players][self.user],
+                                        [self.green_pieces[
+                                             self.user].pos] + self.path_green)
+                                pygame.time.delay(100)
+                                self.window.blit(self.display, (0, 0))
+                                pygame.display.update()
+                    if self.chance == 1:
+                        self.turn += 1
+
+        if check_quit_ready():
+            quitter = get_quit_info()
+            if quitter not in self.quitters:
+                self.quitters.append(quitter)
+                if len(self.quitters) >= self.players - 1:
+                    self.winner = self.my_turn
+                    self.game_over = True
+
+        if self.my_turn != self.turn:  # other player's turn
+            if check_move_ready():
+                # take info of the move (dice, user)
+                self.dice, self.user, self.turn = get_move_info()
+                print("Received move: ", self.turn, self.user, self.dice)
+
+                # apply move
+                if self.dice == 1 or self.dice == 6:
+                    if self.dice == 1:
+                        self.starting_one[self.turn % self.players][self.user] = 1
+                    self.chance += 1
+                if self.starting_one[self.turn % self.players][self.user] >= 1:
+                    checked = self.check_move(self.turn % self.players, self.dice)
+                    if self.position[self.turn % 4][self.user] + self.dice < 57:
+                        if self.check_kill(self.turn % self.players, self.dice, self.starting_one):
+                            self.chance += 1
+                    if checked == 2:
+                        self.game_percent[self.turn % 4] += 100 / self.n
+                        for any_percent in self.game_percent:
+                            if any_percent >= 99:
+                                self.game_over = True
+                                self.winner = self.turn % self.players
+                    # Validity of a move
+                    if checked == 0:
+                        self.message("Invalid Move", self.RED, self.DISPLAY_W - 200 + 15, self.DISPLAY_H / 2 - 40)
+                        if self.dice != 1 and self.dice != 6:
+                            self.turn += 1
+                        return
+                    else:
+                        for _ in range(1, self.dice + 1):
+                            self.display.blit(self.board, (0, 0))
+                            self.display.blit(pygame.image.load("assets/dice" + str(self.dice) + ".jpeg"),
+                                              ((self.DISPLAY_W - 200) / 2 - 40, self.DISPLAY_H / 2 - 40))
+                            for u in range(self.n):
+                                self.red_pieces[u].draw(
+                                    ([self.red_pieces[u].pos] + self.path_red)[self.position[0][u]])
+                                self.yellow_pieces[u].draw(
+                                    ([self.yellow_pieces[u].pos] + self.path_yellow)[self.position[1][u]])
+                                if self.players > 2:
+                                    self.blue_pieces[u].draw(
+                                        ([self.blue_pieces[u].pos] + self.path_blue)[self.position[2][u]])
+                                if self.players > 3:
+                                    self.green_pieces[u].draw(
+                                        ([self.green_pieces[u].pos] + self.path_green)[self.position[3][u]])
+                            self.position[self.turn % self.players][self.user] += 1
+                            if self.turn % self.players == 0:
+                                self.red_pieces[self.user].update(
+                                    self.position[self.turn % self.players][self.user],
+                                    [self.red_pieces[self.user].pos] + self.path_red)
+                            elif self.turn % self.players == 1:
+                                self.yellow_pieces[self.user].update(
+                                    self.position[self.turn % self.players][self.user],
+                                    [self.yellow_pieces[
+                                         self.user].pos] + self.path_yellow)
+                            elif self.turn % self.players == 2:
+                                self.blue_pieces[self.user].update(
+                                    self.position[self.turn % self.players][self.user],
+                                    [self.blue_pieces[self.user].pos] + self.path_blue)
+                            else:
+                                self.green_pieces[self.user].update(
+                                    self.position[self.turn % self.players][self.user],
+                                    [self.green_pieces[
+                                         self.user].pos] + self.path_green)
+                            pygame.time.delay(100)
+                            self.window.blit(self.display, (0, 0))
+                            pygame.display.update()
+                if self.chance == 1:
+                    self.turn += 1
+
     def check_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -421,10 +729,16 @@ class Game:
         return pieces_list
 
     def message(self, msg, color, x_pos, y_pos):
+        # font = pygame.font.Font(self.font_name, 15)
+        # pygame.draw.rect(self.display, self.BLACK, [self.DISPLAY_W - 200 + 5, 0, 190, self.DISPLAY_H])
+        # screen_text = font.render(msg, True, color)
+        # self.display.blit(screen_text, [x_pos, y_pos])
+
         font = pygame.font.Font(self.font_name, 15)
-        pygame.draw.rect(self.display, self.BLACK, [self.DISPLAY_W - 200 + 5, 0, 190, self.DISPLAY_H])
-        screen_text = font.render(msg, True, color)
-        self.display.blit(screen_text, [x_pos, y_pos])
+        text_surface = font.render(msg, True, color)
+        text_rect = text_surface.get_rect()
+        text_rect.center = (x_pos, y_pos)
+        self.display.blit(text_surface, text_rect)
 
     def dice_roll(self, num):
         for i in range(1, 7):
@@ -491,3 +805,27 @@ class Game:
             if (m1[var2] - 20 < mouse1 < m1[var2] + 20) and (
                     n1[var2] - 20 < mouse2 < n1[var2] + 20):
                 return var2
+
+    def reset_game(self):
+        # Menu
+        self.curr_menu.run_display = False
+        self.curr_menu = self.main_menu
+        self.curr_menu.run_display = True
+
+        # Game
+        self.players = 4  # number of players in match
+        self.turn = 0  # current turn
+        self.my_turn = 0  # player's turn (online mode)
+        self.starting_one = []
+        for i in range(4):
+            self.starting_one.append([0 for _ in range(self.n)])
+
+        self.game_percent = [0, 0, 0, 0]
+        self.winner = 0  # who the winner
+        self.game_over = False
+
+        self.quitters = []
+
+    def quit_online_game(self):
+        self.reset_game()
+        send_quit_game()
