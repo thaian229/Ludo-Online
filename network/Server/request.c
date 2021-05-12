@@ -26,9 +26,8 @@ Request *deserializeRequest(unsigned char *buffer)
         Move *move = (Move *)malloc(sizeof(Move));
         req->move = move;
         buffer = deserialize_int(buffer, &req->move->turn);
+        buffer = deserialize_int(buffer, &req->move->pieceNo);
         buffer = deserialize_int(buffer, &req->move->diceValue);
-        buffer = deserialize_int(buffer, &req->move->moveX);
-        buffer = deserialize_int(buffer, &req->move->moveY);
         break;
 
     default:

@@ -41,9 +41,8 @@ Response *deserializeResponse(unsigned char *buffer)
         Move *move = (Move *)malloc(sizeof(Move));
         res->move = move;
         buffer = deserialize_int(buffer, &res->move->turn);
+        buffer = deserialize_int(buffer, &res->move->pieceNo);
         buffer = deserialize_int(buffer, &res->move->diceValue);
-        buffer = deserialize_int(buffer, &res->move->moveX);
-        buffer = deserialize_int(buffer, &res->move->moveY);
         break;
 
     case CREATE_ROOM_RESPONSE:

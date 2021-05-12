@@ -36,9 +36,8 @@ unsigned char *serializeResponse(Response *res)
 
     case MOVE:
         ptr = serialize_int(ptr, res->move->turn);
+        ptr = serialize_int(ptr, res->move->pieceNo);
         ptr = serialize_int(ptr, res->move->diceValue);
-        ptr = serialize_int(ptr, res->move->moveX);
-        ptr = serialize_int(ptr, res->move->moveY);
         break;
 
     case CREATE_ROOM_RESPONSE:

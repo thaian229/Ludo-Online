@@ -32,9 +32,8 @@ bool res_success;
 int ri_roomId = 0;
 
 //move
-int m_moveX;
-int m_moveY;
 int m_diceValue = 1;
+int m_piece_no;
 int m_turn;
 bool m_move_info_ready = false;
 
@@ -201,9 +200,9 @@ void handle_game_init(GameInitInfo *gif)
 void handle_move(Move *move)
 {
     m_diceValue = move->diceValue;
-    m_moveX = move->moveX;
-    m_moveY = move->moveY;
+    m_piece_no = move->pieceNo;
     m_turn = move->turn;
+    m_move_info_ready = true;
 }
 
 void handle_room_create(int roomId)
@@ -319,15 +318,14 @@ void send_join_a_room(int id)
 }
 
 //     case MOVE:
-void send_move(int turn, int dice, int moveX, int moveY)
+void send_move(int turn, int pieceNo,int dice)
 {
     Request *req = (Request *)malloc(sizeof(Request));
     Move *move = (Move *)malloc(sizeof(Move));
 
     move->turn = turn;
+    move->pieceNo = pieceNo;
     move->diceValue = dice;
-    move->moveX = moveX;
-    move->moveY = moveY;
 
     req->type = CREATE_ROOM;
     req->move = move;
@@ -406,14 +404,9 @@ int get_gif_player_count()
     return gif_playerCount;
 }
 
-int get_move_x()
+int get_m_piece_no()
 {
-    return m_moveX;
-}
-
-int get_move_y()
-{
-    return m_moveY;
+    return m_piece_no;
 }
 
 int get_turn()

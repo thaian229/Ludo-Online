@@ -494,7 +494,7 @@ void move(int socketFd, Room *room, Move *move)
         send(socketFd, buffer, BUFFER_SIZE, 0);
     }
     free(buffer);
-    freeResponse(res);
+    // freeResponse(res);
 }
 
 void invalid(int socketFd)

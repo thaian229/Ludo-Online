@@ -2,6 +2,7 @@
     "files.associations": {
         "request.h": "c",
         "deserialize.h": "c",
-        "room.h": "c"
+        "room.h": "c",
+        "optional": "c"
     }
 }

@@ -23,9 +23,8 @@ typedef enum Type
 
 typedef struct Move
 {
-    int moveX;
-    int moveY;
     int diceValue;
+    int pieceNo;
     int turn;
 
 } Move;

@@ -29,9 +29,8 @@ unsigned char *serializeRequest(Request *req)
 
     case MOVE:
         ptr = serialize_int(ptr, req->move->turn);
+        ptr = serialize_int(ptr, req->move->pieceNo);
         ptr = serialize_int(ptr, req->move->diceValue);
-        ptr = serialize_int(ptr, req->move->moveX);
-        ptr = serialize_int(ptr, req->move->moveY);
         break;
 
     default:
