@@ -34,12 +34,13 @@ int ri_roomId = 0;
 //move
 int m_moveX;
 int m_moveY;
-int m_diceValue;
+int m_diceValue = 1;
 int m_turn;
+bool m_move_info_ready = false;
 
 //room status
-int rs_players;
-int rs_ready;
+int rs_players = 0;
+int rs_ready = 0;
 bool gameStarted = false;
 
 //game init info
@@ -365,5 +366,86 @@ void main()
     while (1)
     {
         /* code */
+    }
+}
+
+int get_room_id()
+{
+    return ri_roomId;
+}
+
+int get_rs_players()
+{
+    return rs_players;
+}
+
+int get_rs_ready()
+{
+    return rs_ready;
+}
+
+int get_game_started()
+{
+    if (gameStarted == false)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+int get_gif_color()
+{
+    return gif_yourColor;
+}
+
+int get_gif_player_count()
+{
+    return gif_playerCount;
+}
+
+int get_move_x()
+{
+    return m_moveX;
+}
+
+int get_move_y()
+{
+    return m_moveY;
+}
+
+int get_turn()
+{
+    return m_turn;
+}
+
+int get_dice_value()
+{
+    return m_diceValue;
+}
+
+int get_move_ready()
+{
+    if (m_move_info_ready == false)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+void set_move_ready(int i)
+{
+    if (i == 0)
+    {
+        m_move_info_ready = false;
+    }
+    else if (i == 1)
+    {
+        m_move_info_ready = true;
     }
 }
