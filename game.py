@@ -151,20 +151,20 @@ class Game:
 
             while self.game_over:
                 self.display.fill(self.BLACK)
-                self.message("Game Over", self.WHITE, self.DISPLAY_W / 2, self.DISPLAY_H / 2)
-                self.message("Winner:" + self.turn_color[self.winner], self.WHITE, self.DISPLAY_W / 2,
-                             self.DISPLAY_H / 2 - 30)
-                self.message("Press Q to Quit and C to play again", self.BLUE, self.DISPLAY_W / 2,
-                             self.DISPLAY_H / 2 + 30)
+                self.draw_text("Game Over", 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 - 100)
+                self.draw_text("Winner is " + self.turn_color[self.winner], 30, self.DISPLAY_W / 2,
+                               self.DISPLAY_H / 2)
+                self.draw_text("Hit Enter To Quit", 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 + 50)
+
                 self.window.blit(self.display, (0, 0))
                 pygame.display.update()
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_q:
+                        if event.key == pygame.K_RETURN:
                             self.playing_offline = False
                             self.game_over = False
-                        if event.key == pygame.K_c:
-                            self.game_loop_offline()
+                            self.curr_menu = self.main_menu
+                            self.reset_game()
                         else:
                             break
 
@@ -172,7 +172,9 @@ class Game:
             self.offline_events_handling()
             if self.BACK_KEY or self.START_KEY:
                 self.playing_offline = False
+                self.game_over = False
                 self.curr_menu = self.main_menu
+                self.reset_game()
 
             # Update Frame
             self.window.blit(self.display, (0, 0))
@@ -313,8 +315,12 @@ class Game:
                 # GAME OVER
                 self.display.fill(self.BLACK)
                 self.draw_text("Game Over", 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 - 100)
-                self.draw_text("Winner is " + self.turn_color[self.winner], 30, self.DISPLAY_W / 2,
-                               self.DISPLAY_H / 2)
+                if self.winner == self.my_turn:
+                    self.draw_text("You WON", 30, self.DISPLAY_W / 2,
+                                   self.DISPLAY_H / 2)
+                else:
+                    self.draw_text("Winner is " + self.turn_color[self.winner], 30, self.DISPLAY_W / 2,
+                                   self.DISPLAY_H / 2)
                 self.draw_text("Hit Enter To Quit", 30, self.DISPLAY_W / 2, self.DISPLAY_H / 2 + 50)
 
                 self.window.blit(self.display, (0, 0))
@@ -345,9 +351,11 @@ class Game:
             self.reset_keys()
 
     def offline_events_handling(self):
+        rect = pygame.Rect(self.DISPLAY_W - 200, 0, 200, 600)
+        pygame.draw.rect(self.display, self.BLACK, rect)
+        self.message('TURN ' + self.turn_color[self.turn % self.players], self.WHITE, self.DISPLAY_W - 100,
+                     self.DISPLAY_H / 2 - 15)
         for event in pygame.event.get():
-            self.message('TURN ' + self.turn_color[self.turn % self.players], self.WHITE, self.DISPLAY_W - 200 + 15,
-                         self.DISPLAY_H / 2)
             if event.type == pygame.QUIT:
                 self.running, self.playing_offline = False, False
                 self.curr_menu.run_display = False
@@ -586,6 +594,7 @@ class Game:
                                 pygame.display.update()
                     if self.chance == 1:
                         self.turn += 1
+                        self.turn = self.turn % self.players
 
         if check_quit_ready():
             quitter = get_quit_info()
@@ -600,6 +609,7 @@ class Game:
                 # take info of the move (dice, user)
                 self.dice, self.user, self.turn = get_move_info()
                 print("Received move: ", self.turn, self.user, self.dice)
+                self.chance = 1
 
                 # apply move
                 if self.dice == 1 or self.dice == 6:
@@ -819,6 +829,10 @@ class Game:
         self.starting_one = []
         for i in range(4):
             self.starting_one.append([0 for _ in range(self.n)])
+
+        self.position = []
+        for _ in range(4):
+            self.position.append([0 for _ in range(self.n)])
 
         self.game_percent = [0, 0, 0, 0]
         self.winner = 0  # who the winner
