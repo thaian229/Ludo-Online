@@ -35,6 +35,7 @@ typedef struct Request
     union
     {
         char content[200];
+        int quitted;
         int roomId;
         Move *move;
     };

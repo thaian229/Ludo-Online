@@ -37,6 +37,10 @@ int m_piece_no;
 int m_turn;
 bool m_move_info_ready = false;
 
+//quit
+int q_quiter = -1;
+bool q_quit_event_ready = false;
+
 //room status
 int rs_players = 0;
 int rs_ready = 0;
@@ -53,6 +57,7 @@ void *recv_handler(void *);
 void handle_room_status_update(RoomStatus *roomStatus);
 void handle_game_init(GameInitInfo *gif);
 void handle_move(Move *move);
+void handle_quit(int quitted);
 void handle_room_create(int roomId);
 void handle_quick_join(int roomId);
 void handle_join_a_room(int roomId);
@@ -153,6 +158,10 @@ void *recv_handler(void *socketFd)
                     handle_move(res->move);
                     break;
 
+                case QUIT_GAME:
+                    handle_quit(res->quitted);
+                    break;
+
                 case CREATE_ROOM_RESPONSE:
                     handle_room_create(res->roomId);
                     break;
@@ -203,6 +212,11 @@ void handle_move(Move *move)
     m_piece_no = move->pieceNo;
     m_turn = move->turn;
     m_move_info_ready = true;
+}
+
+void handle_quit(int quitted)
+{
+    q_quiter = quitted;
 }
 
 void handle_room_create(int roomId)
@@ -318,7 +332,7 @@ void send_join_a_room(int id)
 }
 
 //     case MOVE:
-void send_move(int turn, int pieceNo,int dice)
+void send_move(int turn, int pieceNo, int dice)
 {
     Request *req = (Request *)malloc(sizeof(Request));
     Move *move = (Move *)malloc(sizeof(Move));
@@ -327,7 +341,7 @@ void send_move(int turn, int pieceNo,int dice)
     move->pieceNo = pieceNo;
     move->diceValue = dice;
 
-    req->type = CREATE_ROOM;
+    req->type = MOVE;
     req->move = move;
 
     unsigned char *outBuffer;
@@ -352,15 +366,10 @@ void main()
 
     send_create_room();
 
-    // printf("done\n");
-
-    // while (ri_roomId == 0)
-    // {
-    //     /* code */
-    // }
-    // printf("%d\n", ri_roomId);
     send_ready();
-    // send_move(1, 6, 3, 2);
+
+    send_quit_game();
+
     while (1)
     {
         /* code */
@@ -404,7 +413,7 @@ int get_gif_player_count()
     return gif_playerCount;
 }
 
-int get_m_piece_no()
+int get_piece_no()
 {
     return m_piece_no;
 }
@@ -417,6 +426,11 @@ int get_turn()
 int get_dice_value()
 {
     return m_diceValue;
+}
+
+int get_quiter()
+{
+    return q_quiter;
 }
 
 int get_move_ready()
@@ -441,4 +455,46 @@ void set_move_ready(int i)
     {
         m_move_info_ready = true;
     }
+}
+
+int get_quit_event_ready()
+{
+    if (q_quit_event_ready == false)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+void set_quit_event_ready(int i)
+{
+    if (i == 0)
+    {
+        q_quit_event_ready = false;
+    }
+    else if (i == 1)
+    {
+        q_quit_event_ready = true;
+    }
+}
+
+void reset_game_info()
+{
+    m_diceValue = 0;
+    m_move_info_ready = false;
+    m_piece_no = 0;
+    m_turn = 0;
+
+    ri_roomId = 0;
+    rs_players = 0;
+    rs_ready = 0;
+
+    gif_playerCount = 0;
+    gif_yourColor = -1;
+
+    q_quiter = -1;
+    q_quit_event_ready = false;
 }

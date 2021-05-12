@@ -19,7 +19,10 @@ unsigned char *serializeRequest(Request *req)
     case CREATE_ROOM:
     case QUICK_JOIN:
     case READY:
+        break;
+
     case QUIT_GAME:
+        ptr = serialize_int(ptr, req->quitted);
         break;
 
     case JOIN_A_ROOM:

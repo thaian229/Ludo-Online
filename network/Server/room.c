@@ -121,26 +121,34 @@ bool addClientToRoom(Room *room, int clientFd)
 {
     if (room != NULL)
     {
-        for (int i = 0; i < 4; i++)
+        if (!room->isPlaying)
         {
-            if (room->clientFd[i] == clientFd)
+            for (int i = 0; i < 4; i++)
             {
-                printf("ERR: Client is already in this room\n");
-                return false;
+                if (room->clientFd[i] == clientFd)
+                {
+                    printf("ERR: Client is already in this room\n");
+                    return false;
+                }
             }
-        }
 
-        for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; i++)
+            {
+                if (room->clientFd[i] == 0)
+                {
+                    room->clientFd[i] = clientFd;
+                    return true;
+                }
+            }
+
+            printf("ERR: This room is full\n");
+            return false;
+        }
+        else
         {
-            if (room->clientFd[i] == 0)
-            {
-                room->clientFd[i] = clientFd;
-                return true;
-            }
+            printf("ERR: This room is playing\n");
+            return false;
         }
-
-        printf("ERR: This room is full\n");
-        return false;
     }
     printf("ERR: No room\n");
     return false;

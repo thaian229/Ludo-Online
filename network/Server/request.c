@@ -16,6 +16,7 @@ Request *deserializeRequest(unsigned char *buffer)
     case QUICK_JOIN:
     case READY:
     case QUIT_GAME:
+        buffer = deserialize_int(buffer, &req->quitted);
         break;
 
     case JOIN_A_ROOM:
@@ -35,10 +36,9 @@ Request *deserializeRequest(unsigned char *buffer)
         req->type = INVALID;
         break;
     }
-    
+
     return req;
 }
-
 
 void freeRequest(Request *req)
 {

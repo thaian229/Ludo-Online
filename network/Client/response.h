@@ -23,6 +23,7 @@ typedef struct Response
     {
         char err[200];
         int roomId;
+        int quitted;
         RoomStatus *roomStatus;
         GameInitInfo *gameInitInfo;
         Move *move;

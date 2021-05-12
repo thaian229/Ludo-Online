@@ -406,6 +406,60 @@ void ready(int socketFd, Room *room)
 
 void quitGame(int socketFd, Room *room)
 {
+    unsigned char *buffer;
+    Response *res = (Response *)malloc(sizeof(Response));
+    res->type = QUIT_GAME;
+
+    if (room != NULL)
+    {
+        int quit = -1;
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (room->clientFd[i] == socketFd)
+            {
+                quit = i;
+                removeClientFromRoom(room, socketFd);
+            }
+        }
+
+        if (quit != -1)
+        {
+            res->success = true;
+            res->quitted = quit;
+
+            buffer = serializeResponse(res);
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (room->clientFd[i] != socketFd && room->clientFd[i] != 0)
+                {
+                    send(room->clientFd[i], buffer, BUFFER_SIZE, 0);
+                }
+            }
+
+            if (calculateNumberOfClientInRoom(room) <= 0)
+            {
+                roomIds[room->id] = 0;
+                removeRoom(head, room->id);
+            }
+        }
+        else
+        {
+            res->success = false;
+            strcpy(res->err, "YOU ARE NOT IN THIS ROOM");
+            buffer = serializeResponse(res);
+            send(socketFd, buffer, BUFFER_SIZE, 0);
+        }
+    }
+    else
+    {
+        res->success = false;
+        strcpy(res->err, "YOU ARE NOT IN A ROOM");
+        buffer = serializeResponse(res);
+        send(socketFd, buffer, BUFFER_SIZE, 0);
+    }
+    free(buffer);
 }
 
 void updateRoomStatus(Room *room)

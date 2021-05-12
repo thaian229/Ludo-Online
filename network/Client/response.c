@@ -37,6 +37,10 @@ Response *deserializeResponse(unsigned char *buffer)
         buffer = deserialize_int(buffer, &res->gameInitInfo->playerCount);
         break;
 
+    case QUIT_GAME:
+        buffer = deserialize_int(buffer, &res->quitted);
+        break;
+
     case MOVE:;
         Move *move = (Move *)malloc(sizeof(Move));
         res->move = move;

@@ -29,6 +29,10 @@ unsigned char *serializeResponse(Response *res)
         ptr = serialize_int(ptr, res->roomStatus->ready);
         break;
 
+    case QUIT_GAME:
+        ptr = serialize_int(ptr, res->quitted);
+        break;
+
     case GAME_INIT:
         ptr = serialize_int(ptr, res->gameInitInfo->yourColor);
         ptr = serialize_int(ptr, res->gameInitInfo->playerCount);

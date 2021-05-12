@@ -36,6 +36,7 @@ typedef struct Request
     {
         char content[200];
         int roomId;
+        int quitted;
         Move *move;
     };
 } Request;
