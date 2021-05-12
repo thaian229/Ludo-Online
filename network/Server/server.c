@@ -438,6 +438,8 @@ void quitGame(int socketFd, Room *room)
                 }
             }
 
+            updateRoomStatus(room);
+
             if (calculateNumberOfClientInRoom(room) <= 0)
             {
                 roomIds[room->id] = 0;
