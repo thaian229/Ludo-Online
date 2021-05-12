@@ -56,6 +56,9 @@ int main(int argc, char const *argv[])
     socklen_t clientLen;
     int opt = 1;
 
+    head = (Room *)malloc(sizeof(Room));
+    head->id = 0;
+
     // Creating socket file descriptor
     if ((listenFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -134,7 +137,7 @@ void *connection_handler(void *connectFd)
     unsigned char inBuffer[BUFFER_SIZE];
     unsigned char *outBuffer;
     int valread;
-    Room *room;
+    Room *room = NULL;
 
     while ((valread = read(socket, inBuffer, sizeof(inBuffer))) > 0)
     {
@@ -247,6 +250,7 @@ Room *createRoom(int socketFd, Room *curRoom)
     }
     else
     {
+        printf("CID: %d\n", curRoom->id);
         res->success = false;
         strcpy(res->err, "ALREADY IN ANOTHER ROOM");
         buffer = serializeResponse(res);
@@ -270,7 +274,10 @@ Room *quickJoin(int socketFd, Room *curRoom)
     {
         int roomId = findEmptyRoomId();
         Room *room = quickJoinRoom(head, roomId, socketFd);
-        roomIds[roomId] = 1;
+        if (room->id == roomId)
+        {
+            roomIds[roomId] = 1;
+        }
 
         res->success = true;
         res->roomId = room->id;
@@ -308,12 +315,29 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId)
         Room *room = searchRoomById(head, roomId);
         if (room != NULL)
         {
-            res->success = true;
-            res->roomId = room->id;
+            if (calculateNumberOfClientInRoom(room) < 4)
+            {
+                addClientToRoom(room, socketFd);
 
-            buffer = serializeResponse(res);
+                res->success = true;
+                res->roomId = room->id;
 
-            send(socketFd, buffer, BUFFER_SIZE, 0);
+                buffer = serializeResponse(res);
+
+                send(socketFd, buffer, BUFFER_SIZE, 0);
+
+                return room;
+            }
+            else
+            {
+                res->success = false;
+                strcpy(res->err, "ROOM IS FULL");
+                buffer = serializeResponse(res);
+
+                send(socketFd, buffer, BUFFER_SIZE, 0);
+
+                return curRoom;
+            }
         }
         else
         {
@@ -327,7 +351,7 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId)
         free(buffer);
         freeResponse(res);
 
-        return room;
+        return curRoom;
     }
     else
     {
@@ -476,7 +500,7 @@ void invalid(int socketFd)
 int findEmptyRoomId()
 {
     int roomid;
-    
+
     for (int i = 1; i < MAXROOM; i++)
     {
         if (roomIds[i] == 0)

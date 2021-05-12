@@ -347,8 +347,9 @@ void send_move(int turn, int dice, int moveX, int moveY)
 void main()
 {
     connect_to_server();
-    // send_join_a_room(5);
+    // send_join_a_room(1);
 
+    send_quick_join();
     // printf("done\n");
 
     send_create_room();
@@ -361,7 +362,7 @@ void main()
     // }
     // printf("%d\n", ri_roomId);
     // send_ready();
-    send_move(1, 6, 3, 2);
+    // send_move(1, 6, 3, 2);
     while (1)
     {
         /* code */

@@ -21,9 +21,9 @@ Room *searchRoomById(Room *head, int id)
 {
     Room *result;
 
-    result = head;
+    result = head->next;
 
-    while (result != NULL)
+    while (result != NULL && id != 0)
     {
         if (id == result->id)
         {
@@ -77,7 +77,7 @@ Room *addRoom(Room *head, int id, int ownerFd)
 
 Room *quickJoinRoom(Room *head, int backupRoomId, int ownerFd)
 {
-    Room *current = head;
+    Room *current = head->next;
     while (current != NULL)
     {
         if (addClientToRoom(current, ownerFd))
