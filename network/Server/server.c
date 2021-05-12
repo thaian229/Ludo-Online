@@ -33,7 +33,7 @@ void ready(int socketFd, Room *room);
 
 void updateRoomStatus(Room *room);
 
-void initGame(int socketFd, Room *room);
+void initGame(Room *room);
 
 void move(int socketFd, Room *room, Move *move);
 
@@ -176,7 +176,7 @@ void *connection_handler(void *connectFd)
 
         case READY:
             ready(socket, room);
-            
+
             int readyCount = calculateNumberOfReadiedClient(room);
             printf("READIED\n");
 
@@ -184,7 +184,7 @@ void *connection_handler(void *connectFd)
             {
                 printf("READIED\n");
 
-                initGame(socket, room);
+                initGame(room);
                 room->isPlaying = true;
             }
             break;
@@ -438,31 +438,32 @@ void updateRoomStatus(Room *room)
     }
 }
 
-void initGame(int socketFd, Room *room)
+void initGame(Room *room)
 {
     unsigned char *buffer;
-    Response *res = (Response *)malloc(sizeof(Response));
-    res->type = GAME_INIT;
-    res->success = true;
 
-    GameInitInfo *gi = (GameInitInfo *)malloc(sizeof(GameInitInfo));
-    for (int i = 0; i < calculateNumberOfClientInRoom(room); i++)
+    for (int i = 0; i < 4; i++)
     {
-        if (socketFd == room->clientFd[i])
+        Response *res = (Response *)malloc(sizeof(Response));
+        res->type = GAME_INIT;
+        res->success = true;
+        GameInitInfo *gi = (GameInitInfo *)malloc(sizeof(GameInitInfo));
+
+        if (room->clientFd[i] != 0)
         {
             gi->yourColor = i;
+            gi->playerCount = calculateNumberOfClientInRoom(room);
         }
+
+        res->gameInitInfo = gi;
+
+        buffer = serializeResponse(res);
+
+        send(room->clientFd[i], buffer, BUFFER_SIZE, 0);
+
+        // freeResponse(res);
+        free(buffer);
     }
-
-    res->gameInitInfo = gi;
-
-    buffer = serializeResponse(res);
-
-    send(socketFd, buffer, BUFFER_SIZE, 0);
-
-    free(buffer);
-
-    freeResponse(res);
 }
 
 void move(int socketFd, Room *room, Move *move)
