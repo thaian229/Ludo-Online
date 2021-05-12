@@ -166,7 +166,6 @@ void *recv_handler(void *socketFd)
                     break;
 
                 case READY_RESPONSE:
-
                     break;
 
                 default:
@@ -361,7 +360,7 @@ void main()
     //     /* code */
     // }
     // printf("%d\n", ri_roomId);
-    // send_ready();
+    send_ready();
     // send_move(1, 6, 3, 2);
     while (1)
     {

@@ -31,7 +31,7 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId);
 
 void ready(int socketFd, Room *room);
 
-void updateRoomStatus(int socketFd, Room *room);
+void updateRoomStatus(Room *room);
 
 void initGame(int socketFd, Room *room);
 
@@ -163,23 +163,20 @@ void *connection_handler(void *connectFd)
         case CREATE_ROOM:
 
             room = createRoom(socket, room);
-            // updateRoomStatus(socket, room);
             break;
 
         case QUICK_JOIN:
             room = quickJoin(socket, room);
-            // updateRoomStatus(socket, room);
             break;
 
         case JOIN_A_ROOM:;
             printf("%d\n", req->roomId);
             room = joinARoom(socket, room, req->roomId);
-            // updateRoomStatus(socket, room);
             break;
 
         case READY:
             ready(socket, room);
-            updateRoomStatus(socket, room);
+            
             int readyCount = calculateNumberOfReadiedClient(room);
             printf("READIED\n");
 
@@ -243,9 +240,10 @@ Room *createRoom(int socketFd, Room *curRoom)
 
         send(socketFd, buffer, BUFFER_SIZE, 0);
 
+        updateRoomStatus(room);
+
         free(buffer);
         freeResponse(res);
-
         return room;
     }
     else
@@ -286,6 +284,8 @@ Room *quickJoin(int socketFd, Room *curRoom)
 
         send(socketFd, buffer, BUFFER_SIZE, 0);
 
+        updateRoomStatus(room);
+
         free(buffer);
         freeResponse(res);
         return room;
@@ -325,6 +325,8 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId)
                 buffer = serializeResponse(res);
 
                 send(socketFd, buffer, BUFFER_SIZE, 0);
+
+                updateRoomStatus(room);
 
                 return room;
             }
@@ -396,6 +398,8 @@ void ready(int socketFd, Room *room)
 
     send(socketFd, buffer, BUFFER_SIZE, 0);
 
+    updateRoomStatus(room);
+
     free(buffer);
     freeResponse(res);
 }
@@ -404,7 +408,7 @@ void quitGame(int socketFd, Room *room)
 {
 }
 
-void updateRoomStatus(int socketFd, Room *room)
+void updateRoomStatus(Room *room)
 {
     if (room != NULL)
     {
@@ -421,7 +425,13 @@ void updateRoomStatus(int socketFd, Room *room)
 
         buffer = serializeResponse(res);
 
-        send(socketFd, buffer, BUFFER_SIZE, 0);
+        for (int i = 0; i < 4; i++)
+        {
+            if (room->clientFd[i] != 0)
+            {
+                send(room->clientFd[i], buffer, BUFFER_SIZE, 0);
+            }
+        }
 
         free(buffer);
         // freeResponse(res);
