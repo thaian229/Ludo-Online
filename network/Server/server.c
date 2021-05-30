@@ -47,6 +47,9 @@ Room *head;
 
 int roomIds[MAXROOM] = {0};
 
+pthread_mutex_t roomListLock;
+pthread_mutex_t roomIdsLock;
+
 int main(int argc, char const *argv[])
 {
     // server, client and bytes count
@@ -94,6 +97,18 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
     printf("Server is running... waiting for connection.\n");
+
+    if (pthread_mutex_init(&roomListLock, NULL) != 0)
+    {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
+
+    if (pthread_mutex_init(&roomIdsLock, NULL) != 0)
+    {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
 
     int no_threads = 0;
     pthread_t threads[BACKLOG];
@@ -161,7 +176,6 @@ void *connection_handler(void *connectFd)
         switch (req->type)
         {
         case CREATE_ROOM:
-
             room = createRoom(socket, room);
             break;
 
@@ -229,9 +243,14 @@ Room *createRoom(int socketFd, Room *curRoom)
 
     if (curRoom == NULL)
     {
+        pthread_mutex_lock(&roomListLock);
         int roomId = findEmptyRoomId();
         Room *room = addRoom(head, roomId, socketFd);
+        pthread_mutex_unlock(&roomListLock);
+
+        pthread_mutex_lock(&roomIdsLock);
         roomIds[roomId] = 1;
+        pthread_mutex_unlock(&roomIdsLock);
 
         res->success = true;
         res->roomId = room->id;
@@ -240,7 +259,9 @@ Room *createRoom(int socketFd, Room *curRoom)
 
         send(socketFd, buffer, BUFFER_SIZE, 0);
 
+        pthread_mutex_lock(&roomListLock);
         updateRoomStatus(room);
+        pthread_mutex_unlock(&roomListLock);
 
         free(buffer);
         freeResponse(res);
@@ -270,11 +291,16 @@ Room *quickJoin(int socketFd, Room *curRoom)
 
     if (curRoom == NULL)
     {
+        pthread_mutex_lock(&roomListLock);
         int roomId = findEmptyRoomId();
         Room *room = quickJoinRoom(head, roomId, socketFd);
+        pthread_mutex_unlock(&roomListLock);
+
         if (room->id == roomId)
         {
+            pthread_mutex_lock(&roomIdsLock);
             roomIds[roomId] = 1;
+            pthread_mutex_unlock(&roomIdsLock);
         }
 
         res->success = true;
@@ -284,7 +310,9 @@ Room *quickJoin(int socketFd, Room *curRoom)
 
         send(socketFd, buffer, BUFFER_SIZE, 0);
 
+        pthread_mutex_lock(&roomListLock);
         updateRoomStatus(room);
+        pthread_mutex_unlock(&roomListLock);
 
         free(buffer);
         freeResponse(res);
@@ -317,7 +345,9 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId)
         {
             if (calculateNumberOfClientInRoom(room) < 4)
             {
+                pthread_mutex_lock(&roomListLock);
                 addClientToRoom(room, socketFd);
+                pthread_mutex_unlock(&roomListLock);
 
                 res->success = true;
                 res->roomId = room->id;
@@ -326,7 +356,9 @@ Room *joinARoom(int socketFd, Room *curRoom, int roomId)
 
                 send(socketFd, buffer, BUFFER_SIZE, 0);
 
+                pthread_mutex_lock(&roomListLock);
                 updateRoomStatus(room);
+                pthread_mutex_unlock(&roomListLock);
 
                 return room;
             }
@@ -378,6 +410,7 @@ void ready(int socketFd, Room *room)
 
     if (room != NULL)
     {
+        pthread_mutex_lock(&roomListLock);
         if (updateReadyStatus(room, socketFd))
         {
             res->success = true;
@@ -387,6 +420,7 @@ void ready(int socketFd, Room *room)
             res->success = false;
             strcpy(res->err, "UPDATE FAILED");
         }
+        pthread_mutex_unlock(&roomListLock);
     }
     else
     {
@@ -419,7 +453,9 @@ void quitGame(int socketFd, Room *room)
             if (room->clientFd[i] == socketFd)
             {
                 quit = i;
+                pthread_mutex_lock(&roomListLock);
                 removeClientFromRoom(room, socketFd);
+                pthread_mutex_unlock(&roomListLock);
             }
         }
 
@@ -438,13 +474,14 @@ void quitGame(int socketFd, Room *room)
                 }
             }
 
+            pthread_mutex_lock(&roomListLock);
             updateRoomStatus(room);
-
             if (calculateNumberOfClientInRoom(room) <= 0)
             {
                 roomIds[room->id] = 0;
                 removeRoom(head, room->id);
             }
+            pthread_mutex_unlock(&roomListLock);
         }
         else
         {
@@ -474,6 +511,7 @@ void updateRoomStatus(Room *room)
         res->success = true;
 
         RoomStatus *status = (RoomStatus *)malloc(sizeof(RoomStatus));
+
         status->players = calculateNumberOfClientInRoom(room);
         status->ready = calculateNumberOfReadiedClient(room);
 
@@ -508,7 +546,9 @@ void initGame(Room *room)
         if (room->clientFd[i] != 0)
         {
             gi->yourColor = i;
+            pthread_mutex_lock(&roomListLock);
             gi->playerCount = calculateNumberOfClientInRoom(room);
+            pthread_mutex_unlock(&roomListLock);
         }
 
         res->gameInitInfo = gi;
