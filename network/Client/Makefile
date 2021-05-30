@@ -3,8 +3,8 @@ CC = gcc
 LIBS =  -lm 
 
 
-# all: clean client.so
-all: clean client.c
+all: clean client.so
+#all: clean client.c
 
 client.so: client.c utils.o serialize.o deserialize.o request.o response.o 
 	${CC} -pthread -fPIC -shared client.c utils.o serialize.o deserialize.o request.o response.o -o client.so

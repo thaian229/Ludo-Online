@@ -546,9 +546,7 @@ void initGame(Room *room)
         if (room->clientFd[i] != 0)
         {
             gi->yourColor = i;
-            pthread_mutex_lock(&roomListLock);
             gi->playerCount = calculateNumberOfClientInRoom(room);
-            pthread_mutex_unlock(&roomListLock);
         }
 
         res->gameInitInfo = gi;
