@@ -157,7 +157,7 @@ class CreditsMenu(Menu):
 
 class InputBox:
 
-    def __init__(self, game, x, y, w, h, text='0'):
+    def __init__(self, game, x, y, w, h, text='1'):
         self.game = game
         self.rect = pygame.Rect(x, y, w, h)
         self.color = self.game.RED
