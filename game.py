@@ -252,6 +252,13 @@ class Game:
                         send_ready()
                         is_ready = True
 
+                if check_res_failed() and self.online_menu.selection == 'Id':
+                    handle_res_failed()
+                    self.curr_menu = self.online_menu
+                    self.playing_online = False
+                    self.reset_keys()
+                    break
+
                 # network handling
                 room_id, room_players, room_ready, game_started = get_room_status()
 

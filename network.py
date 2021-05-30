@@ -73,6 +73,15 @@ def check_quit_ready():
     return rs == 1
 
 
+def check_res_failed():
+    rs = client.get_flag_res_failed()
+    return rs == 1
+
+
+def handle_res_failed():
+    client.set_flag_res_failed(0)
+
+
 def get_quit_info():
     quitter = client.get_quiter()
     client.set_quit_event_ready(0)

@@ -26,7 +26,7 @@ unsigned char inBuffer[BUFFER_SIZE] = {0};
 pthread_t threads[2] = {0};
 
 //message
-bool res_success;
+bool flag_res_failed = false;
 
 //room id
 int ri_roomId = 0;
@@ -191,6 +191,7 @@ void *recv_handler(void *socketFd)
             else
             {
                 printf("Error: %s\n", res->err);
+                flag_res_failed = true;
             }
 
             // freeResponse(res);
@@ -485,6 +486,30 @@ void set_quit_event_ready(int i)
     else if (i == 1)
     {
         q_quit_event_ready = true;
+    }
+}
+
+int get_flag_res_failed()
+{
+    if (flag_res_failed == false)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+void set_flag_res_failed(int i)
+{
+    if (i == 0)
+    {
+        flag_res_failed = false;
+    }
+    else if (i == 1)
+    {
+        flag_res_failed = true;
     }
 }
 
